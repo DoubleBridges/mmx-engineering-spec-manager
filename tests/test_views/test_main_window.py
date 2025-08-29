@@ -1,5 +1,8 @@
 import pytest
+from PySide6.QtWidgets import QMainWindow, QMenu, QWidget
+from PySide6.QtCore import Qt
 from mmx_engineering_spec_manager.views.main_window import MainWindow
+
 
 @pytest.fixture
 def main_window(qtbot):
@@ -9,6 +12,7 @@ def main_window(qtbot):
     window = MainWindow()
     qtbot.addWidget(window)
     return window
+
 
 def test_main_window_creation(main_window):
     """
@@ -39,3 +43,26 @@ def test_main_window_has_file_menu(main_window):
 
     assert file_menu is not None
     assert file_menu.title() == "&File"
+
+
+def test_exit_action_closes_window(main_window, qtbot):
+    """
+    Test that the Exit action on the File menu closes the main window.
+    """
+    # Find the 'Exit' action
+    file_menu = main_window.findChild(QMenu, "file_menu")
+    assert file_menu is not None
+
+    exit_action = None
+    for action in file_menu.actions():
+        if action.text() == "E&xit":
+            exit_action = action
+            break
+
+    assert exit_action is not None
+
+    # Trigger the action and wait for the main window's 'close' signal
+    with qtbot.waitSignal(main_window.close_event_signal, timeout=500):
+        exit_action.trigger()
+
+    # The test will pass if the signal is received within the timeout
