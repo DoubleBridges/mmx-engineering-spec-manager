@@ -1,5 +1,6 @@
 import pytest
 from mmx_engineering_spec_manager.models.microvellum_model import ProjectModel
+from mmx_engineering_spec_manager.models.location_model import LocationModel
 
 def test_project_model_creation():
     """
@@ -42,3 +43,31 @@ def test_project_model_all_properties():
     assert project.job_phone == "555-123-4567"
     assert project.job_fax == "555-987-6543"
     assert project.job_email == "test@example.com"
+
+def test_project_model_empty_collections():
+    """
+    Test that the ProjectModel can be created with empty collections.
+    """
+    project_data = {}
+    project = ProjectModel(project_data)
+
+    assert project.locations == []
+    assert project.walls == []
+    assert project.products == []
+
+def test_project_model_with_locations():
+    """
+    Test that the ProjectModel can be created with a list of LocationModels.
+    """
+    project_data = {
+        "Locations": [
+            {"Name": "Kitchen"},
+            {"Name": "Bathroom"}
+        ]
+    }
+    project = ProjectModel(project_data)
+
+    assert len(project.locations) == 2
+    assert isinstance(project.locations[0], LocationModel)
+    assert project.locations[0].name == "Kitchen"
+    assert project.locations[1].name == "Bathroom"
