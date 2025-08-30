@@ -1,6 +1,6 @@
+import os
 import requests
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -11,10 +11,28 @@ class InnergyImporter:
         self.base_url = "https://api.innergy.com"
 
     def get_job_details(self, job_id):
-        url = f"{self.base_url}/jobs/{job_id}"
+        url = f"{self.base_url}/api/projects/{job_id}"
         headers = {"Authorization": f"Bearer {self.api_key}"}
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
             return response.json()
+        return None
+
+    def get_projects(self):
+        url = f"{self.base_url}/api/projects"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            filtered_projects = []
+            for item in response.json().get("Items", []):
+                project_data = {
+                    "Id": item.get("Id"),
+                    "Number": item.get("Number"),
+                    "Name": item.get("Name"),
+                    "Address": item.get("Address")
+                }
+                filtered_projects.append(project_data)
+            return filtered_projects
         return None
