@@ -1,6 +1,7 @@
 import pytest
 from mmx_engineering_spec_manager.models.microvellum_model import ProjectModel
 from mmx_engineering_spec_manager.models.location_model import LocationModel
+from mmx_engineering_spec_manager.models.wall_model import WallModel
 
 def test_project_model_creation():
     """
@@ -71,3 +72,41 @@ def test_project_model_with_locations():
     assert isinstance(project.locations[0], LocationModel)
     assert project.locations[0].name == "Kitchen"
     assert project.locations[1].name == "Bathroom"
+
+def test_project_model_with_walls():
+    """
+    Test that the ProjectModel can be created with a list of WallModels.
+    """
+    project_data = {
+        "Walls": [
+            {
+                "LinkID": "BPWALL.Wall.001",
+                "LinkIDLocation": "Phase One",
+                "Width": 120,
+                "Height": 108.0,
+                "Depth": 6.0,
+                "XOrigin": -2.69925,
+                "YOrigin": 344.76264,
+                "ZOrigin": 0.0,
+                "Angle": 0
+            },
+            {
+                "LinkID": "BPWALL.Wall.002",
+                "LinkIDLocation": "Phase One",
+                "Width": 132.45931982369,
+                "Height": 108.0,
+                "Depth": 6.0,
+                "XOrigin": 117.30075,
+                "YOrigin": 344.76264,
+                "ZOrigin": 0.0,
+                "Angle": 320.09654468120192
+            }
+        ]
+    }
+    project = ProjectModel(project_data)
+
+    assert len(project.walls) == 2
+    assert isinstance(project.walls[0], WallModel)
+    assert project.walls[0].link_id == "BPWALL.Wall.001"
+    assert project.walls[1].link_id == "BPWALL.Wall.002"
+    assert project.walls[1].width == 132.45931982369

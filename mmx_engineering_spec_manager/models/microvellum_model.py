@@ -1,4 +1,5 @@
 from mmx_engineering_spec_manager.models.location_model import LocationModel
+from mmx_engineering_spec_manager.models.wall_model import WallModel
 
 class ProjectModel:
     def __init__(self, data):
@@ -19,3 +20,7 @@ class ProjectModel:
         if "Locations" in data:
             for location_data in data["Locations"]:
                 self.locations.append(LocationModel(location_data))
+
+        if "Walls" in data:
+            for wall_data in data["Walls"]:
+                self.walls.append(WallModel(wall_data))
