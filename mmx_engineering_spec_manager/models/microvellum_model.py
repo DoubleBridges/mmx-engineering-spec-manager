@@ -1,5 +1,7 @@
 from mmx_engineering_spec_manager.models.location_model import LocationModel
 from mmx_engineering_spec_manager.models.wall_model import WallModel
+from mmx_engineering_spec_manager.models.product_model import ProductModel
+
 
 class ProjectModel:
     def __init__(self, data):
@@ -24,3 +26,7 @@ class ProjectModel:
         if "Walls" in data:
             for wall_data in data["Walls"]:
                 self.walls.append(WallModel(wall_data))
+
+        if "Products" in data:
+            for product_data in data["Products"]:
+                self.products.append(ProductModel(product_data))

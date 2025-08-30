@@ -1,7 +1,9 @@
 import pytest
 from mmx_engineering_spec_manager.models.microvellum_model import ProjectModel
 from mmx_engineering_spec_manager.models.location_model import LocationModel
+from mmx_engineering_spec_manager.models.prompt_model import PromptModel
 from mmx_engineering_spec_manager.models.wall_model import WallModel
+from mmx_engineering_spec_manager.models.product_model import ProductModel
 
 def test_project_model_creation():
     """
@@ -110,3 +112,47 @@ def test_project_model_with_walls():
     assert project.walls[0].link_id == "BPWALL.Wall.001"
     assert project.walls[1].link_id == "BPWALL.Wall.002"
     assert project.walls[1].width == 132.45931982369
+
+def test_project_model_with_products():
+    """
+    Test that the ProjectModel can be created with a list of ProductModels.
+    """
+    project_data = {
+        "Products": [
+            {
+                "Name": "1 Door Base",
+                "Quantity": 1,
+                "Width": 18,
+                "Height": 34.5,
+                "Depth": 23.125,
+                "ItemNumber": "1.01",
+                "Comment": "Test comment1|Test Comment2|Test Comment3",
+                "Angle": 0,
+                "XOrigin": 48.30075,
+                "YOrigin": 344.76264,
+                "ZOrigin": 0,
+                "LinkIDSpecificationGroup": "Veneer",
+                "LinkIDLocation": "Phase One",
+                "LinkIDWall": "BPWALL.Wall.001",
+                "Prompts": [
+                    {
+                        "Name": "Fixed_Shelf_Qty",
+                        "Value": "=2+2"
+                    },
+                    {
+                        "Name": "Shelf_Qtys",
+                        "Value": "=4+4"
+                    }
+                ]
+            }
+        ]
+    }
+    project = ProjectModel(project_data)
+
+    assert len(project.products) == 1
+    assert isinstance(project.products[0], ProductModel)
+    assert project.products[0].name == "1 Door Base"
+    assert len(project.products[0].prompts) == 2
+    assert isinstance(project.products[0].prompts[0], PromptModel)
+    assert project.products[0].prompts[0].name == "Fixed_Shelf_Qty"
+    assert project.products[0].prompts[0].value == "=2+2"
