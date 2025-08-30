@@ -187,3 +187,25 @@ def test_project_model_with_specification_groups():
     assert project.specification_groups[0].name == "HPDL"
     assert len(project.specification_groups[0].global_prompts) == 2
     assert len(project.specification_groups[0].wizard_prompts) == 1
+
+
+def test_prompt_model_with_nested_prompts():
+    """
+    Test that a PromptModel can have nested Prompts.
+    """
+    prompt_data = {
+        "Name": "Left_Applied_End",
+        "Value": "1",
+        "Prompt": {
+            "Name": "Applied_End_Type",
+            "Value": "MV Profile Door"
+        }
+    }
+
+    prompt = PromptModel(prompt_data)
+
+    assert prompt.name == "Left_Applied_End"
+    assert prompt.value == "1"
+    assert isinstance(prompt.nested_prompt, PromptModel)
+    assert prompt.nested_prompt.name == "Applied_End_Type"
+    assert prompt.nested_prompt.value == "MV Profile Door"
