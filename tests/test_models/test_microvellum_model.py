@@ -2,6 +2,7 @@ import pytest
 from mmx_engineering_spec_manager.models.microvellum_model import ProjectModel
 from mmx_engineering_spec_manager.models.location_model import LocationModel
 from mmx_engineering_spec_manager.models.prompt_model import PromptModel
+from mmx_engineering_spec_manager.models.specification_group_model import SpecificationGroupModel
 from mmx_engineering_spec_manager.models.wall_model import WallModel
 from mmx_engineering_spec_manager.models.product_model import ProductModel
 
@@ -156,3 +157,33 @@ def test_project_model_with_products():
     assert isinstance(project.products[0].prompts[0], PromptModel)
     assert project.products[0].prompts[0].name == "Fixed_Shelf_Qty"
     assert project.products[0].prompts[0].value == "=2+2"
+
+def test_project_model_with_specification_groups():
+    """
+    Test that the ProjectModel can be created with a list of SpecificationGroupModels.
+    """
+    project_data = {
+        "SpecificationGroups": [
+            {
+                "Name": "HPDL",
+                "Global": {
+                    "Prompts": [
+                        {"Name": "Suspended_Cab_Height", "Value": "3"},
+                        {"Name": "Adj_Max_Span", "Value": "15"}
+                    ]
+                },
+                "Wizard": {
+                    "Prompts": [
+                        {"Name": "Cost_Adjustment", "Value": "4"}
+                    ]
+                }
+            }
+        ]
+    }
+    project = ProjectModel(project_data)
+
+    assert len(project.specification_groups) == 1
+    assert isinstance(project.specification_groups[0], SpecificationGroupModel)
+    assert project.specification_groups[0].name == "HPDL"
+    assert len(project.specification_groups[0].global_prompts) == 2
+    assert len(project.specification_groups[0].wizard_prompts) == 1

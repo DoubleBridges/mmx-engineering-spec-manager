@@ -1,6 +1,7 @@
 from mmx_engineering_spec_manager.models.location_model import LocationModel
 from mmx_engineering_spec_manager.models.wall_model import WallModel
 from mmx_engineering_spec_manager.models.product_model import ProductModel
+from mmx_engineering_spec_manager.models.specification_group_model import SpecificationGroupModel
 
 
 class ProjectModel:
@@ -18,6 +19,7 @@ class ProjectModel:
         self.locations = []
         self.walls = []
         self.products = []
+        self.specification_groups = []
 
         if "Locations" in data:
             for location_data in data["Locations"]:
@@ -30,3 +32,7 @@ class ProjectModel:
         if "Products" in data:
             for product_data in data["Products"]:
                 self.products.append(ProductModel(product_data))
+
+        if "SpecificationGroups" in data:
+            for spec_group_data in data["SpecificationGroups"]:
+                self.specification_groups.append(SpecificationGroupModel(spec_group_data))
