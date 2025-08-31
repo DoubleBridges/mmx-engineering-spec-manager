@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 from mmx_engineering_spec_manager.db_models.database_config import Base
+from mmx_engineering_spec_manager.db_models.product import Product
 
 class Location(Base):
     """
@@ -12,4 +13,6 @@ class Location(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
     project_id = Column(Integer, ForeignKey('projects.id'))
+
     project = relationship("Project", back_populates="locations")
+    products = relationship("Product", back_populates="location")
