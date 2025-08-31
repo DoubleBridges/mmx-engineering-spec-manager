@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 
 from mmx_engineering_spec_manager.db_models.database_config import Base
 
-
 class Wall(Base):
     """
     SQLAlchemy model for the 'walls' table.
