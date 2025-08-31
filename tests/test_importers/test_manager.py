@@ -4,6 +4,8 @@ import requests
 from unittest.mock import Mock
 from mmx_engineering_spec_manager.importers.manager import ImporterManager
 from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
+from mmx_engineering_spec_manager.importers.project_setup_wizard import ProjectSetupWizardImporter
+
 
 
 def test_importer_manager_loads_innergy_importer(mocker):
@@ -29,3 +31,13 @@ def test_importer_manager_loads_innergy_importer(mocker):
         "https://api.innergy.com/api/projects/12345",
         headers={"Authorization": f"Bearer {os.getenv('INNERGY_API_KEY')}"}
     )
+
+
+def test_importer_manager_loads_project_setup_wizard_importer():
+    """
+    Test that the ImporterManager can load the ProjectSetupWizardImporter.
+    """
+    importer_manager = ImporterManager()
+    importer = importer_manager.get_importer("project_setup_wizard")
+
+    assert isinstance(importer, ProjectSetupWizardImporter)
