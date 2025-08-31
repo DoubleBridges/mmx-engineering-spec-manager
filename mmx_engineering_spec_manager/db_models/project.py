@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 
 from mmx_engineering_spec_manager.db_models.database_config import Base
 from mmx_engineering_spec_manager.db_models.location import Location
+from mmx_engineering_spec_manager.db_models.product import Product
 
 class Project(Base):
     """
@@ -16,3 +17,4 @@ class Project(Base):
     job_description = Column(String)
 
     locations = relationship("Location", back_populates="project")
+    products = relationship("Product", back_populates="project")
