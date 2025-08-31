@@ -1,8 +1,12 @@
 import pytest
+from sqlalchemy.orm import Session
 from mmx_engineering_spec_manager.db_models.project import Project
 from mmx_engineering_spec_manager.db_models.location import Location
 from mmx_engineering_spec_manager.db_models.product import Product
 from mmx_engineering_spec_manager.db_models.prompt import Prompt
+from mmx_engineering_spec_manager.db_models.database_config import get_engine, Base
+import os
+
 
 def test_prompt_model_creation(db_session):
     """
@@ -46,3 +50,27 @@ def test_prompt_model_creation(db_session):
     assert prompt.name == "Door_Type"
     assert prompt.value == "MV Profile Door"
     assert prompt.product_id == product.id
+
+
+def test_prompt_model_with_nested_prompts(db_session):
+    """
+    Test that a Prompt model can have nested prompts.
+    """
+    parent_prompt = Prompt(
+        name="Parent Prompt",
+        value="Parent Value"
+    )
+    db_session.add(parent_prompt)
+    db_session.commit()
+
+    child_prompt = Prompt(
+        name="Child Prompt",
+        value="Child Value",
+        parent_id=parent_prompt.id
+    )
+    db_session.add(child_prompt)
+    db_session.commit()
+
+    assert parent_prompt.id == child_prompt.parent_id
+    assert len(parent_prompt.children) == 1
+    assert parent_prompt.children[0].name == "Child Prompt"

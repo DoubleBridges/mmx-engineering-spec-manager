@@ -15,3 +15,4 @@ class SpecificationGroup(Base):
 
     prompts = relationship("Prompt", back_populates="specification_group")
     global_prompts = relationship("GlobalPrompts", back_populates="specification_group")
+    wizard_prompts = relationship("WizardPrompts", back_populates="specification_group")

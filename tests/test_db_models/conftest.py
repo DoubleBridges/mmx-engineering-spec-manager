@@ -1,5 +1,3 @@
-# tests/test_db_models/conftest.py
-
 import pytest
 from sqlalchemy.orm import Session
 from mmx_engineering_spec_manager.db_models.project import Project
@@ -8,6 +6,8 @@ from mmx_engineering_spec_manager.db_models.product import Product
 from mmx_engineering_spec_manager.db_models.custom_field import CustomField
 from mmx_engineering_spec_manager.db_models.prompt import Prompt
 from mmx_engineering_spec_manager.db_models.specification_group import SpecificationGroup
+from mmx_engineering_spec_manager.db_models.global_prompts import GlobalPrompts
+from mmx_engineering_spec_manager.db_models.wizard_prompts import WizardPrompts
 from mmx_engineering_spec_manager.db_models.database_config import get_engine, Base
 import os
 
