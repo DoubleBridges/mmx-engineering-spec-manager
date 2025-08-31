@@ -1,6 +1,8 @@
-# mmx_engineering_spec_manager/db_models/project.py
 from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
+
 from mmx_engineering_spec_manager.db_models.database_config import Base
+from mmx_engineering_spec_manager.db_models.location import Location
 
 class Project(Base):
     """
@@ -12,3 +14,5 @@ class Project(Base):
     number = Column(String)
     name = Column(String)
     job_description = Column(String)
+
+    locations = relationship("Location", back_populates="project")
