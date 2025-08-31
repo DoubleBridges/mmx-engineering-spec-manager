@@ -24,7 +24,7 @@ def test_main_window_creation(main_window):
     assert main_window.isVisible()
 
     # Check for other initial properties
-    assert main_window.windowTitle() == "Spec Manager"
+    assert main_window.windowTitle() == "Engineering Project Manager"
 
 
 def test_main_window_has_file_menu(main_window):

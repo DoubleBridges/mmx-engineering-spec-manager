@@ -2,13 +2,14 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow, QTabWidget, QWidget
 
+from mmx_engineering_spec_manager.views.projects.projects_tab import ProjectsTab
 
 class MainWindow(QMainWindow):
     close_event_signal = Signal()
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Spec Manager")
+        self.setWindowTitle("Engineering Project Manager")
 
         # Create the menu bar
         self.menu_bar = self.menuBar()
@@ -29,7 +30,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tab_widget)
 
         # Create and add the 'Projects' tab
-        self.projects_tab = QWidget()
+        self.projects_tab = ProjectsTab()
         self.tab_widget.addTab(self.projects_tab, "Projects")
 
     def closeEvent(self, event):
