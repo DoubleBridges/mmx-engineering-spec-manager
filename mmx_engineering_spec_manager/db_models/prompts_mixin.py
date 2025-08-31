@@ -11,4 +11,4 @@ class PromptsMixin:
 
     @declared_attr
     def prompts(cls):
-        return relationship("Prompt", back_populates=f"{cls.__name__.lower()}_prompts")
+        return relationship("Prompt")
