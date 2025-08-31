@@ -142,3 +142,56 @@ def test_get_projects_returns_filtered_data(mocker):
         "https://api.innergy.com/api/projects",
         headers={"Authorization": f"Bearer {os.getenv('INNERGY_API_KEY')}"}
     )
+
+def test_get_products_with_custom_fields_returns_data(mocker):
+    """
+    Test that the InnergyImporter returns a clean list of products with custom fields.
+    """
+    # Mock a full Innergy products payload
+    mock_products_payload = {
+        "Items": [
+            {
+                "Name": "1 Door Base",
+                "QuantCount": 1,
+                "Description": "Test Product",
+                "CustomFields": [
+                    {
+                        "Name": "Door_Type",
+                        "Type": 0,
+                        "Value": "MV Profile Door"
+                    }
+                ]
+            }
+        ]
+    }
+
+    # Define the expected filtered data
+    expected_data = [
+        {
+            "Name": "1 Door Base",
+            "QuantCount": 1,
+            "Description": "Test Product",
+            "CustomFields": [
+                {
+                    "Name": "Door_Type",
+                    "Value": "MV Profile Door"
+                }
+            ]
+        }
+    ]
+
+    # Create a mock response object
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = mock_products_payload
+
+    # Patch the requests.get method to return our mock response
+    mocker.patch.object(requests, 'get', return_value=mock_response)
+
+    importer = InnergyImporter()
+
+    # Call the new method we are about to build
+    products_data = importer.get_products(job_id="12345")
+
+    # Assert that the returned data is a filtered list
+    assert products_data == expected_data

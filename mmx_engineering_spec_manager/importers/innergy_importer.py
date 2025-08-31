@@ -36,3 +36,26 @@ class InnergyImporter:
                 filtered_projects.append(project_data)
             return filtered_projects
         return None
+
+    def get_products(self, job_id):
+        url = f"{self.base_url}/api/projects/{job_id}/budgetProducts"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            filtered_products = []
+            for item in response.json().get("Items", []):
+                custom_fields = []
+                if "CustomFields" in item:
+                    for cf in item["CustomFields"]:
+                        custom_fields.append({"Name": cf.get("Name"), "Value": cf.get("Value")})
+
+                product_data = {
+                    "Name": item.get("Name"),
+                    "QuantCount": item.get("QuantCount"),
+                    "Description": item.get("Description"),
+                    "CustomFields": custom_fields
+                }
+                filtered_products.append(product_data)
+            return filtered_products
+        return None
