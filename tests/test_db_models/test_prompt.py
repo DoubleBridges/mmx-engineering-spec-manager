@@ -2,10 +2,11 @@ import pytest
 from mmx_engineering_spec_manager.db_models.project import Project
 from mmx_engineering_spec_manager.db_models.location import Location
 from mmx_engineering_spec_manager.db_models.product import Product
+from mmx_engineering_spec_manager.db_models.prompt import Prompt
 
-def test_product_model_creation(db_session):
+def test_prompt_model_creation(db_session):
     """
-    Test that the Product model can be created with basic properties.
+    Test that the Prompt model can be created with basic properties.
     """
     project = Project(
         number="101",
@@ -34,10 +35,14 @@ def test_product_model_creation(db_session):
     db_session.add(product)
     db_session.commit()
 
-    assert product.name == "Test Product"
-    assert product.quantity == 1
-    assert product.width == 18
-    assert product.height == 34.5
-    assert product.depth == 23.125
-    assert product.project_id == project.id
-    assert product.location_id == location.id
+    prompt = Prompt(
+        name="Door_Type",
+        value="MV Profile Door",
+        product_id=product.id
+    )
+    db_session.add(prompt)
+    db_session.commit()
+
+    assert prompt.name == "Door_Type"
+    assert prompt.value == "MV Profile Door"
+    assert prompt.product_id == product.id

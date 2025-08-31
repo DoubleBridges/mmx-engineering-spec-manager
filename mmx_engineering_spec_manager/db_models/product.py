@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 
 from mmx_engineering_spec_manager.db_models.database_config import Base
 
-
 class Product(Base):
     """
     SQLAlchemy model for the 'products' table.
@@ -22,3 +21,5 @@ class Product(Base):
 
     project = relationship("Project", back_populates="products")
     location = relationship("Location", back_populates="products")
+    custom_fields = relationship("CustomField", back_populates="product")
+    prompts = relationship("Prompt", back_populates="product")

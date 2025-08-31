@@ -1,0 +1,16 @@
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
+
+from mmx_engineering_spec_manager.db_models.database_config import Base
+
+
+class SpecificationGroup(Base):
+    """
+    SQLAlchemy model for the 'specification_groups' table.
+    """
+    __tablename__ = 'specification_groups'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String)
+
+    prompts = relationship("Prompt", back_populates="specification_group")

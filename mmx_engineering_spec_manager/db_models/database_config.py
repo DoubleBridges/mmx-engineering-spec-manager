@@ -1,4 +1,3 @@
-# mmx_engineering_spec_manager/db_models/database_config.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 
