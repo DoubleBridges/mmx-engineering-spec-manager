@@ -1,6 +1,6 @@
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMainWindow, QMenu, QMenuBar
-from PySide6.QtCore import QCoreApplication, Signal
+from PySide6.QtWidgets import QMainWindow, QTabWidget, QWidget
 
 
 class MainWindow(QMainWindow):
@@ -15,7 +15,7 @@ class MainWindow(QMainWindow):
 
         # Add the 'File' menu
         self.file_menu = self.menu_bar.addMenu("&File")
-        self.file_menu.setObjectName("file_menu")  # Set the object name for the test
+        self.file_menu.setObjectName("file_menu")
 
         # Add the 'Exit' action to the 'File' menu
         self.exit_action = QAction("E&xit", self)
@@ -23,6 +23,14 @@ class MainWindow(QMainWindow):
 
         # Connect the 'Exit' action to the close method
         self.exit_action.triggered.connect(self.close)
+
+        # Create the QTabWidget
+        self.tab_widget = QTabWidget()
+        self.setCentralWidget(self.tab_widget)
+
+        # Create and add the 'Projects' tab
+        self.projects_tab = QWidget()
+        self.tab_widget.addTab(self.projects_tab, "Projects")
 
     def closeEvent(self, event):
         """

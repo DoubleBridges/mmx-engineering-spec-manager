@@ -1,6 +1,7 @@
 import pytest
-from PySide6.QtWidgets import QMainWindow, QMenu, QWidget
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QMenu
+from PySide6.QtWidgets import QTabWidget, QWidget
+
 from mmx_engineering_spec_manager.views.main_window import MainWindow
 
 
@@ -66,3 +67,21 @@ def test_exit_action_closes_window(main_window, qtbot):
         exit_action.trigger()
 
     # The test will pass if the signal is received within the timeout
+
+def test_main_window_has_projects_tab(main_window):
+    """
+    Test that the main window contains a QTabWidget with a 'Projects' tab.
+    """
+    # Find the QTabWidget
+    tab_widget = main_window.findChild(QTabWidget)
+    assert tab_widget is not None
+
+    # Check that the 'Projects' tab exists
+    projects_tab = None
+    for i in range(tab_widget.count()):
+        if tab_widget.tabText(i) == "Projects":
+            projects_tab = tab_widget.widget(i)
+            break
+
+    assert projects_tab is not None
+    assert isinstance(projects_tab, QWidget)
