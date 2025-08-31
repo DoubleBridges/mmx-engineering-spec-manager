@@ -16,3 +16,4 @@ class Project(Base):
 
     locations = relationship("Location", back_populates="project")
     products = relationship("Product", back_populates="project")
+    custom_fields = relationship("CustomField", back_populates="project")
