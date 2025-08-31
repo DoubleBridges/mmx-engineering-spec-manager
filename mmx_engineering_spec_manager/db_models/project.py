@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 
 from mmx_engineering_spec_manager.db_models.database_config import Base
+
 class Project(Base):
     """
     SQLAlchemy model for the 'projects' table.
@@ -19,3 +20,7 @@ class Project(Base):
     global_prompts = relationship("GlobalPrompts", back_populates="project")
     wizard_prompts = relationship("WizardPrompts", back_populates="project")
     walls = relationship("Wall", back_populates="project")
+    finish_callouts = relationship("FinishCallout", back_populates="project")
+    hardware_callouts = relationship("HardwareCallout", back_populates="project")
+    sink_callouts = relationship("SinkCallout", back_populates="project")
+    appliance_callouts = relationship("ApplianceCallout", back_populates="project")

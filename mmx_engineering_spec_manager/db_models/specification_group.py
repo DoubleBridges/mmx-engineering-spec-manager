@@ -16,3 +16,7 @@ class SpecificationGroup(Base):
     prompts = relationship("Prompt", back_populates="specification_group")
     global_prompts = relationship("GlobalPrompts", back_populates="specification_group")
     wizard_prompts = relationship("WizardPrompts", back_populates="specification_group")
+    finish_callouts = relationship("FinishCallout", back_populates="specification_group")
+    hardware_callouts = relationship("HardwareCallout", back_populates="specification_group")
+    sink_callouts = relationship("SinkCallout", back_populates="specification_group")
+    appliance_callouts = relationship("ApplianceCallout", back_populates="specification_group")
