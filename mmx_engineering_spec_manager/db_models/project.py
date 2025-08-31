@@ -2,8 +2,6 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 
 from mmx_engineering_spec_manager.db_models.database_config import Base
-from mmx_engineering_spec_manager.db_models.location import Location
-from mmx_engineering_spec_manager.db_models.product import Product
 
 class Project(Base):
     """
