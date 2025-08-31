@@ -3,7 +3,7 @@ import os
 import pytest
 import requests
 from unittest.mock import Mock
-from mmx_engineering_spec_manager.importers.innergy_importer import InnergyImporter
+from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
 
 
 def test_get_job_details_successful(mocker):
