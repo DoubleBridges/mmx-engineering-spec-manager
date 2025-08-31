@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
-
 from mmx_engineering_spec_manager.db_models.database_config import Base
 
 class Project(Base):
@@ -17,3 +16,4 @@ class Project(Base):
     locations = relationship("Location", back_populates="project")
     products = relationship("Product", back_populates="project")
     custom_fields = relationship("CustomField", back_populates="project")
+    global_prompts = relationship("GlobalPrompts", back_populates="project")

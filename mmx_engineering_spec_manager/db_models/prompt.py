@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 
 from mmx_engineering_spec_manager.db_models.database_config import Base
 from mmx_engineering_spec_manager.db_models.parameter import Parameter
+from mmx_engineering_spec_manager.db_models.specification_group import SpecificationGroup
 
 
 class Prompt(Base, Parameter):
@@ -15,6 +16,7 @@ class Prompt(Base, Parameter):
 
     product_id = Column(Integer, ForeignKey('products.id'), nullable=True)
     specification_group_id = Column(Integer, ForeignKey('specification_groups.id'), nullable=True)
+    global_prompts_id = Column(Integer, ForeignKey('global_prompts.id'), nullable=True)
 
     product = relationship("Product", back_populates="prompts")
     specification_group = relationship("SpecificationGroup", back_populates="prompts")

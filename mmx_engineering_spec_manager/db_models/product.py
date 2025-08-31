@@ -2,6 +2,10 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
 
 from mmx_engineering_spec_manager.db_models.database_config import Base
+# from mmx_engineering_spec_manager.db_models.location import Location # Remove this
+from mmx_engineering_spec_manager.db_models.custom_field import CustomField
+from mmx_engineering_spec_manager.db_models.prompt import Prompt
+
 
 class Product(Base):
     """
