@@ -72,3 +72,60 @@ def test_workspace_tab_displays_project_hierarchy(qtbot):
 
     assert tree_model.item(0).child(0).text() == "Kitchen"
     assert tree_model.item(0).child(1).text() == "Bathroom"
+
+
+def test_workspace_tab_displays_project_hierarchy(qtbot):
+    """
+    Test that the WorkspaceTab displays a QTreeView with project walls.
+    """
+
+    class MockProject:
+        def __init__(self, name, locations=None, walls=None):
+            self.name = name
+            self.locations = locations if locations else []
+            self.walls = walls if walls else []
+
+    class MockLocation:
+        def __init__(self, name, id):
+            self.name = name
+            self.id = id
+
+    class MockWall:
+        def __init__(self, link_id, location_id):
+            self.link_id = link_id
+            self.location_id = location_id
+
+    workspace_tab = WorkspaceTab()
+    qtbot.addWidget(workspace_tab)
+
+    mock_project = MockProject(
+        name="Test Project",
+        locations=[
+            MockLocation(name="Kitchen", id=1),
+            MockLocation(name="Bathroom", id=2)
+        ],
+        walls=[
+            MockWall(link_id="wall_1", location_id=1),
+            MockWall(link_id="wall_2", location_id=1),
+            MockWall(link_id="wall_3", location_id=2)
+        ]
+    )
+
+    workspace_tab.display_project(mock_project)
+
+    tree_model = workspace_tab.project_tree.model()
+
+    assert tree_model.rowCount() == 1
+    assert tree_model.item(0).text() == "Test Project"
+
+    # Check that locations exist
+    assert tree_model.item(0).child(0).text() == "Kitchen"
+    assert tree_model.item(0).child(1).text() == "Bathroom"
+
+    # Check that walls exist under the correct location
+    kitchen_item = tree_model.item(0).child(0)
+    assert kitchen_item.child(0).text() == "wall_1"
+    assert kitchen_item.child(1).text() == "wall_2"
+
+    bathroom_item = tree_model.item(0).child(1)
+    assert bathroom_item.child(0).text() == "wall_3"
