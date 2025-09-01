@@ -26,5 +26,36 @@ class ProjectsDetailView(QWidget):
         self.form_layout.addRow("Name:", QLabel(project.name))
         self.form_layout.addRow("Job Description:", QLabel(project.job_description))
 
-        # This will be used later to display collections
+        # Clear the existing tabs
+        self.tab_widget.clear()
+
+        # Add tabs for each collection
+        if project.locations:
+            locations_tab = QWidget()
+            self.tab_widget.addTab(locations_tab, "Locations")
+
+        if project.products:
+            products_tab = QWidget()
+            self.tab_widget.addTab(products_tab, "Products")
+
+        if project.walls:
+            walls_tab = QWidget()
+            self.tab_widget.addTab(walls_tab, "Walls")
+
+        if project.custom_fields:
+            custom_fields_tab = QWidget()
+            self.tab_widget.addTab(custom_fields_tab, "Custom Fields")
+
+        if project.specification_groups:
+            spec_groups_tab = QWidget()
+            self.tab_widget.addTab(spec_groups_tab, "Specification Groups")
+
+        if project.global_prompts:
+            global_prompts_tab = QWidget()
+            self.tab_widget.addTab(global_prompts_tab, "Global Prompts")
+
+        if project.wizard_prompts:
+            wizard_prompts_tab = QWidget()
+            self.tab_widget.addTab(wizard_prompts_tab, "Wizard Prompts")
+
         self.current_project = project
