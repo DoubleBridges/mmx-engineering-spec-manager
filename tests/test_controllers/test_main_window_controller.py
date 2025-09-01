@@ -4,6 +4,10 @@ from mmx_engineering_spec_manager.controllers.main_window_controller import Main
 from mmx_engineering_spec_manager.db_models.project import Project
 
 
+class MockProjectsDetailView(QObject):
+    save_button_clicked_signal = Signal(object)
+
+
 class MockProjectsTab(QObject):
     open_project_signal = Signal(object)
     load_projects_signal = Signal()
@@ -15,10 +19,13 @@ class MockProjectsTab(QObject):
 class MockMainWindow(QObject):
     window_ready_signal = Signal()
     projects_tab = MockProjectsTab()
+    projects_detail_view = MockProjectsDetailView()
 
-    def __init__(self, projects_tab=MockProjectsTab()):
+    def __init__(self, projects_tab=MockProjectsTab(), projects_detail_view=MockProjectsDetailView()):
         super().__init__()
         self.projects_tab = projects_tab
+        self.projects_detail_view = projects_detail_view
+
 
 def test_controller_loads_projects_on_signal(mocker):
     """
@@ -36,7 +43,6 @@ def test_controller_loads_projects_on_signal(mocker):
 
     # Assert that the controller's load_projects method was called
     mock_controller.load_projects.assert_called_once()
-
 
 def test_controller_loads_projects_from_data_manager(mocker):
     """
@@ -60,7 +66,6 @@ def test_controller_loads_projects_from_data_manager(mocker):
 
     # Assert that the DataManager's method was called
     mock_data_manager.get_all_projects.assert_called_once()
-
 
 def test_controller_displays_projects_in_view(mocker):
     """
@@ -117,8 +122,6 @@ def test_controller_opens_project_on_signal(mocker):
     # Assert that the controller's open_project method was called
     mock_controller.open_project.assert_called_once_with(mock_project)
 
-
-
 def test_controller_loads_projects_on_window_ready_signal(mocker):
     """
     Test that the controller's load_projects method is called on initialization.
@@ -146,3 +149,28 @@ def test_controller_loads_projects_on_window_ready_signal(mocker):
 
     # Assert that the load_projects method was called exactly once
     controller.load_projects.assert_called_once()
+
+def test_controller_saves_project_on_signal(mocker):
+    """
+    Test that the controller's save_project method is called when the signal is emitted.
+    """
+    # Create a mock controller and a mock ProjectsDetailView
+    mock_projects_detail_view = MockProjectsDetailView()
+    mock_main_window = MockMainWindow(projects_detail_view=mock_projects_detail_view)
+    mock_controller = mocker.Mock()
+
+    # Create a mock dictionary of updated project data
+    mock_project_data = {
+        "number": "101",
+        "name": "Updated Project Name",
+        "job_description": "Updated project description."
+    }
+
+    # Call the method that connects the signal to the slot
+    MainWindowController.connect_projects_detail_view(mock_controller, mock_projects_detail_view)
+
+    # Simulate the signal being emitted with the mock project data
+    mock_projects_detail_view.save_button_clicked_signal.emit(mock_project_data)
+
+    # Assert that the controller's save_project method was called
+    mock_controller.save_project.assert_called_once_with(mock_project_data)
