@@ -60,7 +60,6 @@ def test_projects_tab_displays_projects(qtbot):
     assert table_model.item(1, 1).text() == "Project Two"
     assert table_model.item(1, 2).text() == "Description 2"
 
-
 def test_projects_tab_double_click_opens_project(qtbot, mocker):
     """
     Test that double-clicking a project in the table emits a signal with the project object.
