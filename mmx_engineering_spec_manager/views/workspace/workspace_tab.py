@@ -23,6 +23,12 @@ class WorkspaceTab(QWidget):
             for wall in project.walls:
                 if wall.location_id == location.id:
                     wall_item = QStandardItem(wall.link_id)
+
+                    for product in project.products:
+                        if product.wall_id == wall.id:
+                            product_item = QStandardItem(product.name)
+                            wall_item.appendRow(product_item)
+
                     location_item.appendRow(wall_item)
 
             project_item.appendRow(location_item)

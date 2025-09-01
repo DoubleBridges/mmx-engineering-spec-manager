@@ -80,10 +80,11 @@ def test_workspace_tab_displays_project_hierarchy(qtbot):
     """
 
     class MockProject:
-        def __init__(self, name, locations=None, walls=None):
+        def __init__(self, name, locations=None, walls=None, products=None):
             self.name = name
             self.locations = locations if locations else []
             self.walls = walls if walls else []
+            self.products = products if products else []
 
     class MockLocation:
         def __init__(self, name, id):
@@ -91,9 +92,16 @@ def test_workspace_tab_displays_project_hierarchy(qtbot):
             self.id = id
 
     class MockWall:
-        def __init__(self, link_id, location_id):
+        def __init__(self, link_id, location_id, id, products=None):
             self.link_id = link_id
             self.location_id = location_id
+            self.id = id
+            self.products = products if products else []
+
+    class MockProduct:
+        def __init__(self, name, wall_id):
+            self.name = name
+            self.wall_id = wall_id
 
     workspace_tab = WorkspaceTab()
     qtbot.addWidget(workspace_tab)
@@ -105,9 +113,14 @@ def test_workspace_tab_displays_project_hierarchy(qtbot):
             MockLocation(name="Bathroom", id=2)
         ],
         walls=[
-            MockWall(link_id="wall_1", location_id=1),
-            MockWall(link_id="wall_2", location_id=1),
-            MockWall(link_id="wall_3", location_id=2)
+            MockWall(link_id="wall_1", location_id=1, id=1),
+            MockWall(link_id="wall_2", location_id=1, id=2),
+            MockWall(link_id="wall_3", location_id=2, id=3)
+        ],
+        products=[
+            MockProduct(name="product_1", wall_id=1),
+            MockProduct(name="product_2", wall_id=1),
+            MockProduct(name="product_3", wall_id=3)
         ]
     )
 
@@ -129,3 +142,61 @@ def test_workspace_tab_displays_project_hierarchy(qtbot):
 
     bathroom_item = tree_model.item(0).child(1)
     assert bathroom_item.child(0).text() == "wall_3"
+
+
+def test_workspace_tab_displays_project_products(qtbot):
+    """
+    Test that the WorkspaceTab displays a QTreeView with project products.
+    """
+
+    class MockProject:
+        def __init__(self, name, locations=None, walls=None, products=None):
+            self.name = name
+            self.locations = locations if locations else []
+            self.walls = walls if walls else []
+            self.products = products if products else []
+
+    class MockLocation:
+        def __init__(self, name, id):
+            self.name = name
+            self.id = id
+
+    class MockWall:
+        def __init__(self, link_id, location_id, id, products=None):
+            self.link_id = link_id
+            self.location_id = location_id
+            self.id = id
+            self.products = products if products else []
+
+    class MockProduct:
+        def __init__(self, name, wall_id):
+            self.name = name
+            self.wall_id = wall_id
+
+    workspace_tab = WorkspaceTab()
+    qtbot.addWidget(workspace_tab)
+
+    mock_project = MockProject(
+        name="Test Project",
+        locations=[
+            MockLocation(name="Kitchen", id=1),
+        ],
+        walls=[
+            MockWall(link_id="wall_1", location_id=1, id=1)
+        ],
+        products=[
+            MockProduct(name="product_1", wall_id=1),
+            MockProduct(name="product_2", wall_id=1)
+        ]
+    )
+
+    workspace_tab.display_project(mock_project)
+
+    tree_model = workspace_tab.project_tree.model()
+
+    # Check that the products exist under the correct wall
+    kitchen_item = tree_model.item(0).child(0)
+    wall_item = kitchen_item.child(0)
+
+    assert wall_item.child(0).text() == "product_1"
+    assert wall_item.child(1).text() == "product_2"
