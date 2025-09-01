@@ -13,6 +13,7 @@ class Project(Base):
     number = Column(String)
     name = Column(String)
     job_description = Column(String)
+    job_address = Column(String)
 
     locations = relationship("Location", back_populates="project")
     products = relationship("Product", back_populates="project")

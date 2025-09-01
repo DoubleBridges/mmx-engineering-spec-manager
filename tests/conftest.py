@@ -26,5 +26,8 @@ def db_session():
 
     session = Session(bind=engine)
     yield session
+
+    # The session is closed and the engine is disposed of before the file is removed
     session.close()
+    engine.dispose()
     os.remove(db_path)

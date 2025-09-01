@@ -1,0 +1,7 @@
+pyside6
+pytest
+pytest-qt
+pytest-mock
+python-dotenv
+requests
+sqlalchemy
