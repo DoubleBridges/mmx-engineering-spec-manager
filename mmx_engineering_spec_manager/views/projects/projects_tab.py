@@ -29,17 +29,17 @@ class ProjectsTab(QWidget):
         self.projects = []
 
     def display_projects(self, projects):
+        self.projects = projects
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Number", "Name", "Job Description"])
 
-        for project in projects:
+        for project in self.projects:
             number_item = QStandardItem(project.number)
             name_item = QStandardItem(project.name)
             description_item = QStandardItem(project.job_description)
             model.appendRow([number_item, name_item, description_item])
 
         self.projects_table.setModel(model)
-        self.projects = projects
 
     def on_project_double_clicked(self, index: QModelIndex):
         if index.isValid():
