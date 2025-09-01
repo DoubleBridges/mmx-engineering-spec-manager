@@ -174,3 +174,32 @@ def test_controller_saves_project_on_signal(mocker):
 
     # Assert that the controller's save_project method was called
     mock_controller.save_project.assert_called_once_with(mock_project_data)
+
+def test_controller_saves_project_with_data_manager(mocker):
+    """
+    Test that the controller's save_project method calls the DataManager.
+    """
+    # Create mock DataManager
+    mock_data_manager = mocker.Mock()
+
+    # Create a mock main window
+    mock_main_window = mocker.Mock()
+
+    # Create a new controller instance with the mocked DataManager
+    controller = MainWindowController(
+        main_window=mock_main_window,
+        data_manager=mock_data_manager
+    )
+
+    # Create a mock dictionary of updated project data
+    mock_project_data = {
+        "number": "101",
+        "name": "Updated Project Name",
+        "job_description": "Updated project description."
+    }
+
+    # Call the method we want to test
+    controller.save_project(mock_project_data)
+
+    # Assert that the DataManager's method was called with the correct data
+    mock_data_manager.save_project.assert_called_once_with(mock_project_data)

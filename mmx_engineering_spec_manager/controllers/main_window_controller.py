@@ -29,5 +29,4 @@ class MainWindowController(QObject):
         print(f"Opening project: {project.name}")
 
     def save_project(self, project_data):
-        # Placeholder for saving the project to the database
-        print(f"Saving project: {project_data}")
+        self.data_manager.save_project(project_data)
