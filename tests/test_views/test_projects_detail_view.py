@@ -59,7 +59,7 @@ def test_projects_detail_view_displays_project_data(qtbot, mock_project_data):
     projects_detail_view.display_project(mock_project_data)
 
     # Assert that the QFormLayout has the correct number of rows
-    form_layout = projects_detail_view.findChild(QFormLayout)
+    form_layout = projects_detail_view.form_layout
     assert form_layout.rowCount() == 3
 
     # Assert that the labels and values are correct
