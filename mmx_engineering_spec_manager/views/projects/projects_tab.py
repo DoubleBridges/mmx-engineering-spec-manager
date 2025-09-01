@@ -1,6 +1,7 @@
-from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QTableView
-from PySide6.QtCore import Signal, QModelIndex
+from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QTableView, QSplitter
+from PySide6.QtCore import Signal, QModelIndex, Qt
 from PySide6.QtGui import QStandardItemModel, QStandardItem
+from mmx_engineering_spec_manager.views.projects.projects_detail_view import ProjectsDetailView
 
 
 class ProjectsTab(QWidget):
@@ -13,20 +14,37 @@ class ProjectsTab(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
+        # A splitter to divide the window into two panes
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.layout.addWidget(self.splitter)
+
+        # Left pane: project list and load button
+        self.project_list_widget = QWidget()
+        self.project_list_layout = QVBoxLayout()
+        self.project_list_widget.setLayout(self.project_list_layout)
+
         self.load_button = QPushButton("Load Projects")
-        self.layout.addWidget(self.load_button)
+        self.project_list_layout.addWidget(self.load_button)
 
         # Connect the button click to our custom signal
         self.load_button.clicked.connect(self.load_projects_signal.emit)
 
         # Add a QTableView to display the projects
         self.projects_table = QTableView()
-        self.layout.addWidget(self.projects_table)
+        self.project_list_layout.addWidget(self.projects_table)
 
         # Connect the table's double-click signal to our handler
         self.projects_table.doubleClicked.connect(self.on_project_double_clicked)
 
+        # Right pane: project detail view
+        self.projects_detail_view = ProjectsDetailView()
+
+        # Add the panes to the splitter
+        self.splitter.addWidget(self.project_list_widget)
+        self.splitter.addWidget(self.projects_detail_view)
+
         self.projects = []
+        self.current_project = None
 
     def display_projects(self, projects):
         self.projects = projects
