@@ -84,6 +84,9 @@ class DataManager:
     def get_all_projects(self, session):
         return session.query(Project).all()
 
+    def get_project_by_id(self, project_id, session):
+        return session.query(Project).get(project_id)
+
     def create_or_update_project(self, raw_data, session):
         project = session.query(Project).filter_by(number=raw_data.get("number")).first()
         if project:
