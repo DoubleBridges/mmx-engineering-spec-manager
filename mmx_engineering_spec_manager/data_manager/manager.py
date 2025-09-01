@@ -12,13 +12,7 @@ class DataManager:
         pass
 
     def save_project(self, raw_data, session):
-        project = Project(
-            number=raw_data.get("number"),
-            name=raw_data.get("name"),
-            job_description=raw_data.get("job_description")
-        )
-        session.add(project)
-        session.commit()
+        self.create_or_update_project(raw_data, session)
 
     def save_project_with_collections(self, raw_data, session):
         project = Project(
@@ -89,3 +83,18 @@ class DataManager:
 
     def get_all_projects(self, session):
         return session.query(Project).all()
+
+    def create_or_update_project(self, raw_data, session):
+        project = session.query(Project).filter_by(number=raw_data.get("number")).first()
+        if project:
+            project.name = raw_data.get("name")
+            project.job_description = raw_data.get("job_description")
+        else:
+            project = Project(
+                number=raw_data.get("number"),
+                name=raw_data.get("name"),
+                job_description=raw_data.get("job_description")
+            )
+            session.add(project)
+        session.commit()
+        return project

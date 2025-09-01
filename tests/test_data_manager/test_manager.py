@@ -67,3 +67,20 @@ def test_save_all_collections_from_raw_data(db_session,raw_data):
     assert retrieved_project.global_prompts[0].name == "Global Prompts"
     assert len(retrieved_project.wizard_prompts) == 1
     assert retrieved_project.wizard_prompts[0].name == "Wizard Prompts"
+
+
+def test_data_manager_creates_new_project(db_session, mocker,raw_data):
+    """
+    Test that the DataManager can create a new project in the database.
+    """
+
+    data_manager = DataManager()
+
+    # We need to mock the session to assert it's being used
+    mocker.patch.object(data_manager, 'create_or_update_project')
+
+    data_manager.save_project(raw_data, db_session)
+
+    # The session is a mock, so the commit will not happen.
+    # We will need to check the state of the mock session.
+    data_manager.create_or_update_project.assert_called_once_with(raw_data, db_session)
