@@ -203,3 +203,30 @@ def test_controller_saves_project_with_data_manager(mocker):
 
     # Assert that the DataManager's method was called with the correct data
     mock_data_manager.save_project.assert_called_once_with(mock_project_data)
+
+
+def test_controller_displays_opened_project_details(mocker):
+    """
+    Test that the controller's open_project method displays the project details.
+    """
+    # Create mock Project, DataManager, and ProjectsDetailView
+    mock_project = Project(number="101", name="Test Project")
+    mock_data_manager = mocker.Mock()
+    mock_data_manager.get_project_by_id.return_value = mock_project
+    mock_projects_detail_view = mocker.Mock()
+
+    # Create mock main window
+    mock_main_window = mocker.Mock()
+    mock_main_window.projects_detail_view = mock_projects_detail_view
+
+    # Create a new controller instance with the mocked DataManager
+    controller = MainWindowController(
+        main_window=mock_main_window,
+        data_manager=mock_data_manager
+    )
+
+    # Call the method we want to test
+    controller.open_project(mock_project)
+
+    # Assert that the ProjectsDetailView's display_project method was called
+    mock_projects_detail_view.display_project.assert_called_once_with(mock_project)
