@@ -1,4 +1,5 @@
 import PySide6
+from unittest.mock import Mock
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QPushButton
@@ -88,3 +89,18 @@ def test_projects_tab_double_click_opens_project(qtbot, mocker):
     projects_tab.on_project_double_clicked(index_to_click)
 
     projects_tab.open_project_signal.emit.assert_called_once_with(mock_projects[0])
+
+def test_projects_tab_displays_project_details(qtbot):
+    """
+    Test that the ProjectsTab's display_project_details method is called with the correct project object.
+    """
+    # Create a mock project object
+    mock_project = Mock(number="101", name="Project One")
+
+    projects_tab = ProjectsTab()
+    qtbot.addWidget(projects_tab)
+
+    projects_tab.display_project_details(mock_project)
+
+    # Assert that the display_project_details method was called with the correct project object
+    assert projects_tab.current_project == mock_project

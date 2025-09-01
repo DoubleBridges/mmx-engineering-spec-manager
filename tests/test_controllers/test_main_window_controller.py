@@ -5,11 +5,18 @@ from mmx_engineering_spec_manager.db_models.project import Project
 
 
 class MockProjectsTab(QObject):
-    load_projects_signal = Signal()
     open_project_signal = Signal(object)
+    load_projects_signal = Signal()
+
+    def display_projects(self, projects):
+        pass
+
 
 class MockMainWindow(QObject):
-    def __init__(self, projects_tab):
+    window_ready_signal = Signal()
+    projects_tab = MockProjectsTab()
+
+    def __init__(self, projects_tab=MockProjectsTab()):
         super().__init__()
         self.projects_tab = projects_tab
 
@@ -109,3 +116,33 @@ def test_controller_opens_project_on_signal(mocker):
 
     # Assert that the controller's open_project method was called
     mock_controller.open_project.assert_called_once_with(mock_project)
+
+
+
+def test_controller_loads_projects_on_window_ready_signal(mocker):
+    """
+    Test that the controller's load_projects method is called on initialization.
+    """
+    # Create a mock ProjectsTab
+    mock_projects_tab = MockProjectsTab()
+
+    # Create a mock main window
+    mock_main_window = MockMainWindow(projects_tab=mock_projects_tab)
+
+    # Create mock DataManager
+    mock_data_manager = mocker.Mock()
+
+    # Create a new controller instance
+    controller = MainWindowController(
+        main_window=mock_main_window,
+        data_manager=mock_data_manager
+    )
+
+    # Patch the load_projects method to assert it is called on init
+    mocker.patch.object(controller, 'load_projects')
+
+    # Simulate the window_ready_signal being emitted
+    mock_main_window.window_ready_signal.emit()
+
+    # Assert that the load_projects method was called exactly once
+    controller.load_projects.assert_called_once()

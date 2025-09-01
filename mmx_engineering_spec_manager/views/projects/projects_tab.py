@@ -46,3 +46,8 @@ class ProjectsTab(QWidget):
             project_index = index.row()
             project = self.projects[project_index]
             self.open_project_signal.emit(project)
+
+    def display_project_details(self, project):
+        # This method will be used to display the project's details
+        # For now, we'll just store the project in an instance variable
+        self.current_project = project
