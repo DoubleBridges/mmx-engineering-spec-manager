@@ -86,3 +86,6 @@ class DataManager:
 
         session.add(project)
         session.commit()
+
+    def get_all_projects(self, session):
+        return session.query(Project).all()

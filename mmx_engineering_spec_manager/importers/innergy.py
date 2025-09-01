@@ -30,8 +30,8 @@ class InnergyImporter:
                 project_data = {
                     "Id": item.get("Id"),
                     "Number": item.get("Number"),
-                    "Name": item.get("Name"),
-                    "Address": item.get("Address")
+                    "Name": item.get("Name", ""),
+                    "Address": item.get("Address", "")
                 }
                 filtered_projects.append(project_data)
             return filtered_projects
