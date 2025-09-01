@@ -17,6 +17,9 @@ class MainWindowController(QObject):
         projects_tab.load_projects_signal.connect(self.load_projects)
         projects_tab.open_project_signal.connect(self.open_project)
 
+    def connect_projects_detail_view(self, projects_detail_view):
+        projects_detail_view.save_button_clicked_signal.connect(self.save_project)
+
     def load_projects(self):
         projects = self.data_manager.get_all_projects()
         self.main_window.projects_tab.display_projects(projects)
@@ -24,3 +27,7 @@ class MainWindowController(QObject):
     def open_project(self, project):
         # Placeholder for opening a project in the UI
         print(f"Opening project: {project.name}")
+
+    def save_project(self, project_data):
+        # Placeholder for saving the project to the database
+        print(f"Saving project: {project_data}")

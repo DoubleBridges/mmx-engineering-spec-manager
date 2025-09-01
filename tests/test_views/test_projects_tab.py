@@ -1,11 +1,33 @@
 import PySide6
-from unittest.mock import Mock
+import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QStandardItemModel
-from PySide6.QtWidgets import QPushButton
 
 from mmx_engineering_spec_manager.views.projects.projects_tab import ProjectsTab
 
+
+@pytest.fixture
+def mock_project():
+    class MockProject:
+        def __init__(self, number, name, job_description):
+            self.number = number
+            self.name = name
+            self.job_description = job_description
+
+    return MockProject(number="101", name="Project One", job_description="Description 1")
+
+@pytest.fixture
+def mock_projects():
+    class MockProject:
+        def __init__(self, number, name, job_description):
+            self.number = number
+            self.name = name
+            self.job_description = job_description
+
+    return [
+        MockProject(number="101", name="Project One", job_description="Description 1"),
+        MockProject(number="102", name="Project Two", job_description="Description 2")
+    ]
 
 def test_load_projects_button_emits_signal(qtbot):
     """
@@ -15,34 +37,19 @@ def test_load_projects_button_emits_signal(qtbot):
     qtbot.addWidget(projects_tab)
 
     # Find the 'Load Projects' button
-    load_button = projects_tab.findChild(QPushButton)
+    load_button = projects_tab.load_button
     assert load_button is not None
 
     # Use qtbot to simulate a click and check for a signal
     with qtbot.waitSignal(projects_tab.load_projects_signal, timeout=1000):
         qtbot.mouseClick(load_button, PySide6.QtCore.Qt.LeftButton)
 
-
-def test_projects_tab_displays_projects(qtbot):
+def test_projects_tab_displays_projects(qtbot, mock_projects):
     """
     Test that the ProjectsTab correctly populates the QTableView with projects.
     """
-
-    # Create a simple class to act as a Project model
-    class MockProject:
-        def __init__(self, number, name, job_description):
-            self.number = number
-            self.name = name
-            self.job_description = job_description
-
     projects_tab = ProjectsTab()
     qtbot.addWidget(projects_tab)
-
-    # Create a list of project objects
-    mock_projects = [
-        MockProject(number="101", name="Project One", job_description="Description 1"),
-        MockProject(number="102", name="Project Two", job_description="Description 2")
-    ]
 
     # Call the display_projects method
     projects_tab.display_projects(mock_projects)
@@ -61,25 +68,12 @@ def test_projects_tab_displays_projects(qtbot):
     assert table_model.item(1, 1).text() == "Project Two"
     assert table_model.item(1, 2).text() == "Description 2"
 
-def test_projects_tab_double_click_opens_project(qtbot, mocker):
+def test_projects_tab_double_click_opens_project(qtbot, mocker, mock_projects):
     """
     Test that double-clicking a project in the table emits a signal with the project object.
     """
-
-    class MockProject:
-        def __init__(self, number, name, job_description):
-            self.number = number
-            self.name = name
-            self.job_description = job_description
-
     projects_tab = ProjectsTab()
     qtbot.addWidget(projects_tab)
-
-    mock_projects = [
-        MockProject(number="101", name="Project One", job_description="Description 1"),
-        MockProject(number="102", name="Project Two", job_description="Description 2")
-    ]
-
     projects_tab.display_projects(mock_projects)
 
     index_to_click = projects_tab.projects_table.model().index(0, 0)
@@ -90,13 +84,10 @@ def test_projects_tab_double_click_opens_project(qtbot, mocker):
 
     projects_tab.open_project_signal.emit.assert_called_once_with(mock_projects[0])
 
-def test_projects_tab_displays_project_details(qtbot):
+def test_projects_tab_displays_project_details(qtbot, mock_project):
     """
     Test that the ProjectsTab's display_project_details method is called with the correct project object.
     """
-    # Create a mock project object
-    mock_project = Mock(number="101", name="Project One")
-
     projects_tab = ProjectsTab()
     qtbot.addWidget(projects_tab)
 

@@ -4,7 +4,6 @@ from PySide6.QtWidgets import QTabWidget, QWidget
 
 from mmx_engineering_spec_manager.views.main_window import MainWindow
 
-
 @pytest.fixture
 def main_window(qtbot):
     """
@@ -13,7 +12,6 @@ def main_window(qtbot):
     window = MainWindow()
     qtbot.addWidget(window)
     return window
-
 
 def test_main_window_creation(main_window):
     """
@@ -25,7 +23,6 @@ def test_main_window_creation(main_window):
 
     # Check for other initial properties
     assert main_window.windowTitle() == "Engineering Project Manager"
-
 
 def test_main_window_has_file_menu(main_window):
     """
@@ -44,7 +41,6 @@ def test_main_window_has_file_menu(main_window):
 
     assert file_menu is not None
     assert file_menu.title() == "&File"
-
 
 def test_exit_action_closes_window(main_window, qtbot):
     """
