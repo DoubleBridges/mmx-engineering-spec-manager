@@ -7,7 +7,11 @@ class MainWindowController(QObject):
         self.main_window = main_window
         self.data_manager = data_manager
 
-        self.connect_projects_tab(main_window.projects_tab)
+        self.main_window.window_ready_signal.connect(self.initialize)
+
+    def initialize(self):
+        self.connect_projects_tab(self.main_window.projects_tab)
+        self.load_projects()
 
     def connect_projects_tab(self, projects_tab):
         projects_tab.load_projects_signal.connect(self.load_projects)
