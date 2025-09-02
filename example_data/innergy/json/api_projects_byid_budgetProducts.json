@@ -1,0 +1,411 @@
+{
+  "ProjectNumber": "string",
+  "ProjectName": "string",
+  "Items": [
+    {
+      "Name": "string",
+      "Description": "string",
+      "ProjectOrigin": "string",
+      "BidOrigin": "string",
+      "QuantCount": 0,
+      "QuantUoM": 0,
+      "NetDraftingChangeFromBaseBid": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "NetFabricationChangeFromBaseBid": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "NetProductChangeFromBaseBid": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "NetInstallChangeFromBaseBid": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "NetTotalChangeFromBaseBid": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "DraftingWorkOrder": {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Number": "string",
+        "Name": "string",
+        "Step": "string"
+      },
+      "ProductionWorkOrder": {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Number": "string",
+        "Name": "string",
+        "Step": "string"
+      },
+      "InstallWorkOrder": {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Number": "string",
+        "Name": "string",
+        "Step": "string"
+      },
+      "ProductId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "SKU": "string",
+      "LibraryName": "string",
+      "X": 0,
+      "Y": 0,
+      "Z": 0,
+      "Location": "string",
+      "Building": "string",
+      "Floor": "string",
+      "Zone": "string",
+      "DrawingReference": "string",
+      "TypicalGroupName": "string",
+      "TaxType": "string",
+      "Tags": [
+        "string"
+      ],
+      "EstimatedCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "MaterialCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ExtendedMaterialCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "LaborCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ExtendedLaborCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "LaborHours": "string",
+      "UnitLaborHours": "string",
+      "TotalUseTaxCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "Cash": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "CashMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "ExtendedProductCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ProductBaselineMarginPercentage": 0,
+      "ProductBaselineMargin": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ProductBaselinePrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ProductBumpDiscountPercentage": 0,
+      "ProductBumpDiscount": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "PreSalesTaxProductPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ProductAdjustedMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "ProductSalesTax": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "TotalProductPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "InstallCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ExtendedInstallCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "InstallHours": "string",
+      "UnitInstallHours": "string",
+      "InstallBaselineMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "InstallBaselinePrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "InstallBumpDiscount": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "PreSalesTaxInstallPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "InstallAdjustedMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "InstallSalesTax": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "TotalInstallPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "GrandTotalCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "GrandTotalMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "GrandTotalPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "TotalHours": "string",
+      "UnitTotalHours": "string",
+      "TotalPreSalesTaxPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "TotalSalesTax": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "DraftingLaborCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "FabricationLaborCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ExtendedDraftingLaborCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ExtendedFabricationLaborCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "DraftingHours": "string",
+      "UnitDraftingHours": "string",
+      "ExtendedDraftingCost": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "DraftingBaselineMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "FabricationBaselineMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "DraftingBaselinePrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "FabricationBaselinePrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "DraftingBumpDiscount": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "FabricationBumpDiscount": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "PreSalesTaxDraftingPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "PreSalesTaxFabricationPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "DraftingAdjustedMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "FabricationAdjustedMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "DraftingSalesTax": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "FabricationSalesTax": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "TotalDraftingPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "TotalFabricationPrice": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "ProductType": "string",
+      "CustomFields": [
+        {
+          "Name": "string",
+          "Type": 0,
+          "Value": "string"
+        }
+      ],
+      "FabricationCash": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "FabricationCashMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "DraftingCash": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "DraftingCashMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      },
+      "InstallationCash": {
+        "Value": 0,
+        "OriginalValue": 0,
+        "CurrencyCode": "string"
+      },
+      "InstallationCashMargin": {
+        "Cash": {
+          "Value": 0,
+          "OriginalValue": 0,
+          "CurrencyCode": "string"
+        },
+        "Percentage": 0
+      }
+    }
+  ]
+}

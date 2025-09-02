@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Root Application="Microvellum" ApplicationVersion="7.0">
+	<Project Name="MvSampleXMLImport">
+		<JobNumber>101</JobNumber>
+    <category>In Progress</category>
+		<JobAddress>444 South Haskel</JobAddress>
+		<JobPhone>800-204-0913</JobPhone>
+		<JobFax>541-664-1625</JobFax>
+		<JobEmail>e-mail@e-mail.com</JobEmail>	
+    			<Locations>
+      				<Location Name="Phase One">
+        			</Location>
+    			</Locations>
+				<Walls>
+					<Wall Name="Wall">
+						<LinkID>BPWALL.Wall.001</LinkID>
+						<LinkIDLocation>Phase One</LinkIDLocation>
+						<Width>120</Width>
+						<Height>108.0</Height>
+						<Depth>6.0</Depth>
+						<XOrigin>-2.69925</XOrigin>
+						<YOrigin>344.76264</YOrigin>
+						<ZOrigin>0.0</ZOrigin>
+						<Angle>0</Angle>
+					</Wall>
+					<Wall Name="Wall">
+						<LinkID>BPWALL.Wall.002</LinkID>
+						<LinkIDLocation>Phase One</LinkIDLocation>
+						<Width>132.45931982369</Width>
+						<Height>108.0</Height>
+						<Depth>6.0</Depth>
+						<XOrigin>117.30075</XOrigin>
+						<YOrigin>344.76264</YOrigin>
+						<ZOrigin>0.0</ZOrigin>
+						<Angle>320.09654468120192</Angle>
+					</Wall>
+					<Wall Name="Wall">
+						<LinkID>BPWALL.Wall.003</LinkID>
+						<LinkIDLocation>Phase One</LinkIDLocation>
+						<Width>153.22841</Width>
+						<Height>108.0</Height>
+						<Depth>6.0</Depth>
+						<XOrigin>218.9138</XOrigin>
+						<YOrigin>259.79053</YOrigin>
+						<ZOrigin>0.0</ZOrigin>
+						<Angle>270</Angle>
+					</Wall>
+					<Wall Name="Wall">
+						<LinkID>BPWALL.Wall.004</LinkID>
+						<LinkIDLocation>Phase One</LinkIDLocation>
+						<Width>120</Width>
+						<Height>108.0</Height>
+						<Depth>6.0</Depth>
+						<XOrigin>436.34548</XOrigin>
+						<YOrigin>229.14485</YOrigin>
+						<ZOrigin>0.0</ZOrigin>
+						<Angle>90</Angle>
+					</Wall>
+					<Wall Name="Wall">
+						<LinkID>BPWALL.Wall.005</LinkID>
+						<LinkIDLocation>Phase One</LinkIDLocation>
+						<Width>120</Width>
+						<Height>108.0</Height>
+						<Depth>6.0</Depth>
+						<XOrigin>436.34548</XOrigin>
+						<YOrigin>349.14485</YOrigin>
+						<ZOrigin>0.0</ZOrigin>
+						<Angle>0</Angle>
+					</Wall>
+				</Walls>
+				<Products>
+					<Product Name="1 Door Base">
+					<Quantity>1</Quantity>
+					<Width>18</Width>
+					<Height>34.5</Height>
+					<Depth>23.125</Depth>
+					<ItemNumber>1.01</ItemNumber>
+					<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+					<Angle>0</Angle>
+					<XOrigin>48.30075</XOrigin>
+					<YOrigin>344.76264</YOrigin>
+					<ZOrigin>0</ZOrigin>
+					<LinkIDSpecificationGroup>Veneer</LinkIDSpecificationGroup>
+					<LinkIDLocation>Phase One</LinkIDLocation>
+					<LinkIDWall>BPWALL.Wall.001</LinkIDWall>
+						<Prompts>
+						<Prompt Name="Adj_Sd_Qty">
+            
+							</Prompt>
+						<Prompt Name="Fixed_Shelf_Qty">
+							<Value>=2+2</Value>
+						</Prompt>
+						<Prompt Name="Shelf_Qtys">
+						<Value>=4+4</Value>
+						</Prompt>
+						</Prompts>
+					</Product>
+					<Product Name="2 Door Base">
+					<Quantity>1</Quantity>
+					<Width>36</Width>
+					<Height>34.5</Height>
+					<Depth>23.125</Depth>
+					<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+					<Angle>320.096544681202</Angle>
+					<XOrigin>154.2989985991</XOrigin>
+					<YOrigin>313.8235111207</YOrigin>
+					<ZOrigin>0</ZOrigin>
+					<LinkIDSpecificationGroup>Veneer</LinkIDSpecificationGroup>
+					<LinkIDLocation>Phase One</LinkIDLocation>
+					<LinkIDWall>BPWALL.Wall.002</LinkIDWall>
+						<Prompts>
+						<Prompt Name="Adj_Sd_Qty">
+            
+							</Prompt>
+						<Prompt Name="Fixed_Shelf_Qty">
+							<Value>=2+2</Value>
+						</Prompt>
+						<Prompt Name="Shelf_Qtys">
+						<Value>=4+4</Value>
+						</Prompt>
+						</Prompts>
+					</Product>
+					<Product Name="Open Base">
+					<Quantity>1</Quantity>
+					<Width>36</Width>
+					<Height>34.5</Height>
+					<Depth>23.125</Depth>
+					<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+					<Angle>270</Angle>
+					<XOrigin>218.9138</XOrigin>
+					<YOrigin>201.176325</YOrigin>
+					<ZOrigin>0</ZOrigin>
+					<LinkIDSpecificationGroup>Veneer</LinkIDSpecificationGroup>
+					<LinkIDLocation>Phase One</LinkIDLocation>
+					<LinkIDWall>BPWALL.Wall.003</LinkIDWall>
+						<Prompts>
+						<Prompt Name="Adj_Sd_Qty">
+            
+							</Prompt>
+						<Prompt Name="Fixed_Shelf_Qty">
+							<Value>=2+2</Value>
+						</Prompt>
+						<Prompt Name="Shelf_Qtys">
+						<Value>=4+4</Value>
+						</Prompt>
+						</Prompts>
+					</Product>
+					<Product Name="2 Door Pie Cut Corner Base">
+					<Quantity>1</Quantity>
+					<Width>36</Width>
+					<Height>34.5</Height>
+					<Depth>36</Depth>
+					<Angle>90</Angle>
+					<XOrigin>436.34548</XOrigin>
+					<YOrigin>313.14485</YOrigin>
+					<ZOrigin>0</ZOrigin>
+					<LinkIDSpecificationGroup>Veneer</LinkIDSpecificationGroup>
+					<LinkIDLocation>Phase One</LinkIDLocation>
+					<LinkIDWall>BPWALL.Wall.004|BPWALL.Wall.005</LinkIDWall>
+						<Prompts>
+						<Prompt Name="Cabinet_Depth_Left">
+							<Value>23.125</Value>
+						</Prompt>
+						<Prompt Name="Cabinet_Depth_Left">
+							<Value>23.125</Value>
+						</Prompt>
+						</Prompts>
+					</Product>
+				</Products>
+   	</Project>
+</Root>

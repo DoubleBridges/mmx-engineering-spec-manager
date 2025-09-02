@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Root Application="Microvellum" ApplicationVersion="7.0">
+  <Project Name="MvSampleXMLImport">
+    <JobNumber>101</JobNumber>
+    <category>In Progress</category>
+    <JobAddress>444 South Haskel</JobAddress>
+    <JobPhone>800-204-0913</JobPhone>
+    <JobFax>541-664-1625</JobFax>
+    <JobEmail>e-mail@e-mail.com</JobEmail>
+    <SpecificationGroups>
+      <SpecificationGroup Name="HPDL">
+        <Global Name="Globals">
+          <Prompts>
+            <Prompt Name="Suspended_Cab_Height">
+              <Value>3</Value>
+            </Prompt>
+            <Prompt Name="Adj_Max_Span">
+              <Value>15</Value>
+            </Prompt>
+          </Prompts>
+        </Global>
+        <Wizard Name="Project Wizard">
+          <Prompts>
+            <Prompt Name="Cost_Adjustment">
+              <Value>4</Value>
+            </Prompt>
+          </Prompts>
+        </Wizard>
+      </SpecificationGroup>
+      <SpecificationGroup Name="Veneer">
+        <Wizard Name="Project Wizard">
+          <Prompts>
+            <Prompt Name="Cost_Adjustment">
+              <Value>2</Value>
+            </Prompt>
+          </Prompts>
+        </Wizard>
+      </SpecificationGroup>
+    </SpecificationGroups>
+    <Locations>
+      <Location Name="Phase One"></Location>
+      <Location Name="Phase Two"></Location>
+    </Locations>
+    <Products>
+      <Product Name="1 Door Base">
+        <Quantity>2</Quantity>
+        <Height>36</Height>
+        <Width>30</Width>
+        <Depth>24</Depth>
+        <ItemNumber>1.01</ItemNumber>
+        <Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+        <XOrigin>12.5</XOrigin>
+        <YOrigin>12.5</YOrigin>
+        <ZOrigin>12.5</ZOrigin>
+        <LinkIDSpecificationGroup>Frameless Default</LinkIDSpecificationGroup>
+        <LinkIDLocation>Phase Two</LinkIDLocation>
+        <Prompts>
+          <Prompt Name="Adj_Sd_Qty">
+            
+          </Prompt>
+          <Prompt Name="Fixed_Shelf_Qty">
+            <Value>=2+2</Value>
+          </Prompt>
+          <Prompt Name="Shelf_Qtys">
+            <Value>=4+4</Value>
+          </Prompt>
+        </Prompts>
+      </Product>
+      <Product Name="Custom Product">
+        <Quantity>1</Quantity>
+        <Height>18</Height>
+        <Width>12</Width>
+        <Depth>12</Depth>
+        <Comment>Test comment</Comment>
+        <FileName>Custom Product</FileName>
+        <PictureName></PictureName>
+        <LinkIDLocation>2001</LinkIDLocation>
+        <Prompts>
+          <Prompt Name="My Custom Prompt">
+            <Value>53</Value>
+          </Prompt>
+        </Prompts>
+      </Product>
+    </Products>
+  </Project>
+</Root>

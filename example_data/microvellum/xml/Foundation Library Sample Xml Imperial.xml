@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Root Application="Microvellum" ApplicationVersion="7.0">
+	<Project Name="Sample Project Imperial">
+			<JobDescription>XML Import</JobDescription>
+		<JobNumber>MV123</JobNumber>
+			<Category>Estimates</Category>
+		<JobAddress>444 South Haskel</JobAddress>
+		<JobPhone>800-204-0913</JobPhone>
+		<JobFax>541-664-1625</JobFax>
+		<JobEmail>e-mail@e-mail.com</JobEmail>
+    			<SpecificationGroups>
+      				<SpecificationGroup Name="Imperial Decorative Laminate">
+      				</SpecificationGroup>
+    			</SpecificationGroups>
+    			<Locations>
+      				<Location Name="Kitchen">
+        			</Location>
+    			</Locations>
+					<Walls>
+    					<Wall Name="Wall 1">
+            		<LinkID>WALL.Wall</LinkID>
+            		<Width>140</Width>
+            		<Height>106</Height>
+            		<Depth>4</Depth>
+            		<XOrigin>0</XOrigin>
+            		<YOrigin>0</YOrigin>
+            		<ZOrigin>0</ZOrigin>
+            		<Angle>0</Angle>
+    				</Wall>
+					</Walls>
+    			<Products>
+      				<Product Name="Base 1 Door">
+        				<Quantity>1</Quantity>
+       					<Height>34</Height>
+       					<Width>20</Width>
+								<Depth>22</Depth>
+        				<ItemNumber>1.00</ItemNumber>
+        				<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+        				<LinkIDSpecificationGroup>Imperial Decorative Laminate</LinkIDSpecificationGroup>
+        				<LinkIDLocation>Kitchen</LinkIDLocation>
+								<LinkIDWall>WALL.Wall.001</LinkIDWall>
+        				<XOrigin>1</XOrigin>
+        				<YOrigin>0</YOrigin>
+        				<ZOrigin>0</ZOrigin>
+        				<Angle>0</Angle>
+        					<Prompts>
+          						<Prompt Name="Face_Options">
+            							<Value>Right Swing</Value>
+          						</Prompt>
+          						<Prompt Name="Component_Insert">
+            							<Value>Pigeon Holes</Value>
+          						</Prompt>
+											<Prompt Name="Door_Type">
+													<Value>MV Profile Door</Value>
+											</Prompt>
+											<Prompt Name="Left_Applied_End">
+													<Value>1</Value>
+											</Prompt>
+        					</Prompts>
+
+      				</Product>
+								<Product Name="Base 2 Door">
+										<Quantity>1</Quantity>
+										<Height>34</Height>
+										<Width>32</Width>
+							            <Depth>22</Depth>
+										<ItemNumber>2.00</ItemNumber>
+										<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+										<LinkIDSpecificationGroup>Imperial Decorative Laminate</LinkIDSpecificationGroup>
+										<LinkIDLocation>Kitchen</LinkIDLocation>
+										<LinkIDWall>WALL.Wall.001</LinkIDWall>
+										<XOrigin>21</XOrigin>
+										<YOrigin>0</YOrigin>
+										<ZOrigin>0</ZOrigin>
+										<Angle>0</Angle>
+											<Prompts>
+													<Prompt Name="Component_Insert">
+															<Value>Shelf Adj</Value>
+													</Prompt>
+													<Prompt Name="Door_Type">
+															<Value>MV Profile Door</Value>
+													</Prompt>
+											</Prompts>
+
+									</Product>
+									<Product Name="Base 3 Drawer">
+										<Quantity>1</Quantity>
+										<Height>34</Height>
+										<Width>23</Width>
+										<Depth>22</Depth>
+										<ItemNumber>3.00</ItemNumber>
+										<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+										<LinkIDSpecificationGroup>Imperial Decorative Laminate</LinkIDSpecificationGroup>
+										<LinkIDLocation>Kitchen</LinkIDLocation>
+										<LinkIDWall>WALL.Wall.001</LinkIDWall>
+										<XOrigin>53</XOrigin>
+										<YOrigin>0</YOrigin>
+										<ZOrigin>0</ZOrigin>
+										<Angle>0</Angle>
+											<Prompts>
+												<Prompt Name="Door_Type">
+													<Value>MV Profile Door</Value>
+												</Prompt>
+											</Prompts>
+											</Product>
+
+									<Product Name="Base 3 Drawer">
+										<Quantity>1</Quantity>
+										<Height>34</Height>
+										<Width>23</Width>
+										<Depth>22</Depth>
+										<ItemNumber>4.00</ItemNumber>
+										<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+										<LinkIDSpecificationGroup>Imperial Decorative Laminate</LinkIDSpecificationGroup>
+										<LinkIDLocation>Room 1</LinkIDLocation>
+										<LinkIDWall>WALL.Wall.001</LinkIDWall>
+										<XOrigin>76</XOrigin>
+										<YOrigin>0</YOrigin>
+										<ZOrigin>0</ZOrigin>
+										<Angle>0</Angle>
+											<Prompts>
+												<Prompt Name="Door_Type">
+													<Value>MV Profile Door</Value>
+													</Prompt>
+												</Prompts>
+
+									</Product>
+
+									<Product Name="Tall Applied Panel">
+										<Quantity>1</Quantity>
+										<Height>86</Height>
+										<Width>0.625</Width>
+										<Depth>23.75</Depth>
+										<ItemNumber>5.00</ItemNumber>
+										<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+										<LinkIDSpecificationGroup>Imperial Decorative Laminate</LinkIDSpecificationGroup>
+										<LinkIDLocation>Room 1</LinkIDLocation>
+										<LinkIDWall>WALL.Wall.001</LinkIDWall>
+										<XOrigin>99</XOrigin>
+										<YOrigin>0</YOrigin>
+										<ZOrigin>0</ZOrigin>
+										<Angle>0</Angle>
+											<Prompts>
+												<Prompt Name="Left_Applied_End">
+													<Value>1</Value>
+													<Prompt Name="Applied_End_Type">
+														<Value>MV Profile Door</Value>
+													</Prompt>
+											</Prompt>
+										</Prompts>
+
+									</Product>
+									<Product Name="Tall Applied Panel">
+										<Quantity>1</Quantity>
+										<Height>86</Height>
+										<Width>0.625</Width>
+										<Depth>23.75</Depth>
+										<ItemNumber>6.00</ItemNumber>
+										<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+										<LinkIDSpecificationGroup>Imperial Decorative Laminate</LinkIDSpecificationGroup>
+										<LinkIDLocation>Room 1</LinkIDLocation>
+										<LinkIDWall>WALL.Wall.001</LinkIDWall>
+										<XOrigin>138.625</XOrigin>
+										<YOrigin>0</YOrigin>
+										<ZOrigin>0</ZOrigin>
+										<Angle>0</Angle>
+											<Prompts>
+												<Prompt Name="Right_Applied_End">
+													<Value>1</Value>
+													<Prompt Name="Applied_End_Type">
+														<Value>MV Profile Door</Value>
+													</Prompt>
+											</Prompt>
+										</Prompts>
+
+									</Product>
+
+								<Product Name="Tall 2 Door Pantry ">
+									<Quantity>1</Quantity>
+									<Height>86</Height>
+									<Width>39</Width>
+									<Depth>23</Depth>
+									<ItemNumber>7.00</ItemNumber>
+									<Comment>Test comment1|Test Comment2|Test Comment3</Comment>
+									<LinkIDSpecificationGroup>Imperial Decorative Laminate</LinkIDSpecificationGroup>
+									<LinkIDLocation>Room 1</LinkIDLocation>
+									<LinkIDWall>WALL.Wall.001</LinkIDWall>
+									<XOrigin>99.625</XOrigin>
+									<YOrigin>0</YOrigin>
+									<ZOrigin>0</ZOrigin>
+									<Angle>0</Angle>
+										<Prompts>
+											<Prompt Name="Door_Type">
+												<Value>MV Profile Door</Value>
+											</Prompt>
+											<Prompt Name="Top_Component_Insert">
+												<Value>Pigeon Holes</Value>
+										</Prompt>
+
+								</Prompts>
+
+					</Product>
+    			</Products>
+  	</Project>
+</Root>

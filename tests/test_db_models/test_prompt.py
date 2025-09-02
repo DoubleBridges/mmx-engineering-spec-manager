@@ -1,12 +1,8 @@
 import pytest
-from sqlalchemy.orm import Session
 from mmx_engineering_spec_manager.db_models.project import Project
 from mmx_engineering_spec_manager.db_models.location import Location
 from mmx_engineering_spec_manager.db_models.product import Product
 from mmx_engineering_spec_manager.db_models.prompt import Prompt
-from mmx_engineering_spec_manager.db_models.database_config import get_engine, Base
-import os
-
 
 def test_prompt_model_creation(db_session):
     """

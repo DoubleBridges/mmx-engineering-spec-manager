@@ -3,15 +3,18 @@ import pytest
 from mmx_engineering_spec_manager.db_models.custom_field import CustomField
 from mmx_engineering_spec_manager.db_models.project import Project
 
-def test_project_model_creation(db_session):
-    """
-    Test that the Project model can be created with basic properties.
-    """
-    project = Project(
+@pytest.fixture
+def project():
+    return Project(
         number="101",
         name="Test Project",
         job_description="A complete project example."
     )
+
+def test_project_model_creation(db_session, project):
+    """
+    Test that the Project model can be created with basic properties.
+    """
     db_session.add(project)
     db_session.commit()
 
@@ -21,15 +24,10 @@ def test_project_model_creation(db_session):
     assert retrieved_project.name == "Test Project"
     assert retrieved_project.job_description == "A complete project example."
 
-def test_project_has_custom_fields(db_session):
+def test_project_has_custom_fields(db_session, project):
     """
     Test that a project can have a custom field.
     """
-    project = Project(
-        number="101",
-        name="Test Project",
-        job_description="A complete project example."
-    )
     db_session.add(project)
     db_session.commit()
 

@@ -1,0 +1,323 @@
+{
+  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "Number": "string",
+  "Name": "string",
+  "ExternalId": "string",
+  "CreatedBy": {
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "FullName": "string"
+  },
+  "CreatedOn": "2025-09-02T17:56:34.810Z",
+  "ModifiedBy": {
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "FullName": "string"
+  },
+  "ModifiedOn": "2025-09-02T17:56:34.810Z",
+  "Customer": {
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "Name": "string"
+  },
+  "Address": {
+    "Address1": "string",
+    "Address2": "string",
+    "City": "string",
+    "State": "string",
+    "ZipCode": "string",
+    "Country": "string",
+    "County": "string"
+  },
+  "Status": "string",
+  "ProjectManager": {
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "FullName": "string"
+  },
+  "FirstDelivery": "2025-09-02",
+  "SubstantialCompletion": "2025-09-02",
+  "ConstructionStandards": "string",
+  "ConstructionStandardsId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "Tags": [
+    "string"
+  ],
+  "Requirements": [
+    "string"
+  ],
+  "BillingDay": 0,
+  "BilledValue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PercentBilled": 0,
+  "ContractNotes": "string",
+  "WorkOrdersValue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "BidPercentageMargin": 0,
+  "PlannedPercentageMargin": 0,
+  "ActualPercentageMargin": 0,
+  "Opportunity": {
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "Name": "string",
+    "ConversionDate": "2025-09-02T17:56:34.810Z",
+    "ConvertedBy": {
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "FullName": "string"
+    }
+  },
+  "OriginalPreTaxDraftingRevenue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalPreTaxFabricationRevenue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalPreTaxProductRevenue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalDraftingSalesTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalFabricationSalesTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalProductSalesTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalDraftingSalesTaxPercentage": 0,
+  "OriginalFabricationSalesTaxPercentage": 0,
+  "OriginalProductSalesTaxPercentage": 0,
+  "OriginalTotalDraftingAmount": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalTotalFabricationAmount": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalTotalProductAmount": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalPreTaxInstallRevenue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalInstallSalesTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalInstallSalesTaxPercentage": 0,
+  "OriginalTotalInstallAmount": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalPreTaxTotalRevenue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalTotalSalesTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "OriginalTotalSalesTaxPercentage": 0,
+  "OriginalTotalContract": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PreTaxProductRevenue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "ProductSalesTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "ProductSalesTaxPercentage": 0,
+  "TotalProductAmount": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PreTaxInstallRevenue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "InstallSalesTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "InstallSalesTaxPercentage": 0,
+  "TotalInstallAmount": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PreTaxTotalRevenue": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "TotalSalesTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "TotalSalesTaxPercentage": 0,
+  "TotalContract": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "EstimatedBudgetGroupsTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PendingBudgetGroupsTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PlannedBudgetGroupsTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "ActualBudgetGroupsTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "EstimatedLaborItemsTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PendingLaborItemsTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PlannedLaborItemsTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "ActualLaborItemsTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "EstimatedLaborItemsTotalHours": "string",
+  "PendingLaborItemsTotalHours": "string",
+  "PlannedLaborItemsTotalHours": "string",
+  "ActualLaborItemsTotalHours": "string",
+  "EstimatedGrandTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PendingGrandTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "PlannedGrandTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "ActualGrandTotalCost": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "Estimators": [
+    {
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "FullName": "string"
+    }
+  ],
+  "SalesPersons": [
+    {
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "FullName": "string"
+    }
+  ],
+  "Coordinators": [
+    {
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "FullName": "string"
+    }
+  ],
+  "Engineers": [
+    {
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "FullName": "string"
+    }
+  ],
+  "CustomFields": [
+    {
+      "Name": "string",
+      "Type": 0,
+      "Value": "string"
+    }
+  ],
+  "Installers": [
+    {
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "FullName": "string"
+    }
+  ],
+  "MasterNote": "string",
+  "EstimatedDraftingUseTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "EstimatedFabricationUseTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "EstimatedInstallUseTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "EstimatedTotalUseTax": {
+    "Value": 0,
+    "OriginalValue": 0,
+    "CurrencyCode": "string"
+  },
+  "NextMilestone": "string",
+  "WorkflowStepIndex": 0,
+  "WorkflowStepName": "string",
+  "CloseDate": "2025-09-02T17:56:34.810Z"
+}
