@@ -16,15 +16,23 @@ class MockProjectsTab(QObject):
         pass
 
 
+class MockWorkspaceTab(QObject):
+    def display_project(self, project):
+        pass
+
+
 class MockMainWindow(QObject):
     window_ready_signal = Signal()
     projects_tab = MockProjectsTab()
     projects_detail_view = MockProjectsDetailView()
+    workspace_tab = MockWorkspaceTab()
 
-    def __init__(self, projects_tab=MockProjectsTab(), projects_detail_view=MockProjectsDetailView()):
+    def __init__(self, projects_tab=MockProjectsTab(), projects_detail_view=MockProjectsDetailView(),
+                 workspace_tab=MockWorkspaceTab()):
         super().__init__()
         self.projects_tab = projects_tab
         self.projects_detail_view = projects_detail_view
+        self.workspace_tab = workspace_tab
 
 
 def test_controller_loads_projects_on_signal(mocker):
@@ -204,12 +212,11 @@ def test_controller_saves_project_with_data_manager(mocker):
     # Assert that the DataManager's method was called with the correct data
     mock_data_manager.save_project.assert_called_once_with(mock_project_data)
 
-
 def test_controller_displays_opened_project_details(mocker):
     """
     Test that the controller's open_project method displays the project details.
     """
-    # Create mock Project, DataManager, and ProjectsDetailView
+    # Create mock Project
     mock_project = Project(number="101", name="Test Project")
     mock_data_manager = mocker.Mock()
     mock_data_manager.get_project_by_id.return_value = mock_project
@@ -230,3 +237,28 @@ def test_controller_displays_opened_project_details(mocker):
 
     # Assert that the ProjectsDetailView's display_project method was called
     mock_projects_detail_view.display_project.assert_called_once_with(mock_project)
+
+def test_controller_displays_project_in_workspace(mocker):
+    """
+    Test that the controller's open_project method displays the project in the WorkspaceTab.
+    """
+    # Create mock Project, DataManager, and WorkspaceTab
+    mock_project = Project(number="101", name="Test Project")
+    mock_data_manager = mocker.Mock()
+    mock_data_manager.get_project_by_id.return_value = mock_project
+    mock_workspace_tab = mocker.Mock()
+
+    # Create mock main window
+    mock_main_window = MockMainWindow(workspace_tab=mock_workspace_tab)
+
+    # Create a new controller instance with the mocked DataManager
+    controller = MainWindowController(
+        main_window=mock_main_window,
+        data_manager=mock_data_manager
+    )
+
+    # Call the method we want to test
+    controller.open_project(mock_project)
+
+    # Assert that the WorkspaceTab's display_project method was called
+    mock_workspace_tab.display_project.assert_called_once_with(mock_project)

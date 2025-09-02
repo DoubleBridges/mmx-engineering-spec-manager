@@ -56,7 +56,7 @@ def test_projects_detail_view_displays_project_data(qtbot, mock_project_data):
     projects_detail_view = ProjectsDetailView()
     qtbot.addWidget(projects_detail_view)
 
-    projects_detail_view.display_project(mock_project_data)
+    projects_detail_view.open_project_details(mock_project_data)
 
     # Assert that the QFormLayout has the correct number of rows
     form_layout = projects_detail_view.form_layout
@@ -80,7 +80,7 @@ def test_projects_detail_view_displays_project_collections(qtbot, mock_project_d
     projects_detail_view = ProjectsDetailView()
     qtbot.addWidget(projects_detail_view)
 
-    projects_detail_view.display_project(mock_project_data)
+    projects_detail_view.open_project_details(mock_project_data)
 
     # Assert that the QTabWidget has the correct number of tabs
     tab_widget = projects_detail_view.findChild(QTabWidget)
@@ -105,7 +105,7 @@ def test_projects_detail_view_has_editable_fields(qtbot, mock_project_data):
     projects_detail_view = ProjectsDetailView()
     qtbot.addWidget(projects_detail_view)
 
-    projects_detail_view.display_project(mock_project_data)
+    projects_detail_view.open_project_details(mock_project_data)
 
     # Assert that the QFormLayout has QLineEdit widgets
     form_layout = projects_detail_view.findChild(QFormLayout)
@@ -128,7 +128,7 @@ def test_save_button_emits_signal(qtbot, mock_project_data):
     projects_detail_view = ProjectsDetailView()
     qtbot.addWidget(projects_detail_view)
 
-    projects_detail_view.display_project(mock_project_data)
+    projects_detail_view.open_project_details(mock_project_data)
 
     # Find the save button
     save_button = projects_detail_view.save_button

@@ -28,7 +28,7 @@ class ProjectsDetailView(QWidget):
 
         self.current_project = None
 
-    def display_project(self, project):
+    def open_project_details(self, project):
         # Clear the existing layout
         while self.form_layout.rowCount() > 0:
             self.form_layout.removeRow(0)
