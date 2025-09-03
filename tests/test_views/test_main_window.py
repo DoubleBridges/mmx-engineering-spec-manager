@@ -2,6 +2,7 @@ import pytest
 from PySide6.QtWidgets import QMenu
 from PySide6.QtWidgets import QTabWidget, QWidget
 
+from mmx_engineering_spec_manager.views.export.export_tab import ExportTab
 from mmx_engineering_spec_manager.views.main_window import MainWindow
 
 @pytest.fixture
@@ -81,3 +82,21 @@ def test_main_window_has_projects_tab(main_window):
 
     assert projects_tab is not None
     assert isinstance(projects_tab, QWidget)
+
+def test_main_window_has_export_tab(main_window):
+    """
+    Test that the main window contains a QTabWidget with an 'Export' tab.
+    """
+    # Find the QTabWidget
+    tab_widget = main_window.findChild(QTabWidget)
+    assert tab_widget is not None
+
+    # Check that the 'Export' tab exists
+    export_tab = None
+    for i in range(tab_widget.count()):
+        if tab_widget.tabText(i) == "Export":
+            export_tab = tab_widget.widget(i)
+            break
+
+    assert export_tab is not None
+    assert isinstance(export_tab, ExportTab)

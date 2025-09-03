@@ -1,0 +1,45 @@
+I would like some help with this pyside6 qt application. I will try to give you an overall view of its purposes, the goal for an MVP, and a vision of what the roadmap might be moving forward after the MVP.
+
+Generic Purpose
+The purpose of this application is to import data from one or multiple sources, allow the user to manipulate that data, and then export that data in another format for the defined target.
+
+Detailed Description
+More specifically we’re making an application for getting details about a millwork project, cleaning, manipulating, and adding to it, then exporting in a format to be taken in by a CAD/CAM system that will produce drawings and g-code for products in that project. My initial thought is that the application will consist of a main window containing three tabs. One for importing, one for working with the data, and one for exporting. I’m open for other suggestion that may work better. We will need data persistence, and I would like the user to be able to choose between locally on sqlite and networked on postgres.
+
+Data Import
+The data we’re importing will be from business sources like API calls to an ERP, xlsx, csv, or instead of importing the data, we can create it ourselves in-application with a form based project setup wizard. We’ll be pulling in a list of active projects, projects by their id, and some key-value type information stored in the ERP, but not necessarily accessible by API endpoint.
+
+Projects contain basic information like a job number, name, address,  project manager, architect, general contractor, etc. While we need all these basic fields, the important ones we need are locations, and products. Locations have walls, walls have products, and products. We need to get these items and get them cleaned and organized for the next step. Walls are not included in the incoming data and will need to be created and managed in-application. There will be other things in the payloads like custom fields, drawing references, etc, that need to be collected but don’t necessarily have a direct counterpart in the export model. They will need to be assigned manually, at least at first.
+
+We use Innergy as our ERP, but I’m posting this as an open source project and would like it to be as useful as possible for as many people as possible. There needs to be a generic import layer that allows the user to select their source of data, with the fallback being a popup dialog that walks the user through filling out the needed details by hand.
+
+Manipulation
+This is the heart of the application. We need to be able to handle our data at each level: Projects, Project, Location, Wall, Product. My initial thought is that this tab would itself contain three tabs with different layouts. The project level tab would show project level attributes like specification groups, their associated global and wlzard prompt groups, a list of locations. You would select a location, and it will show a plan view of that location and its walls on a 2D canvas. If there are no walls, we need to be able to add walls. This could be accomplished initially with simple form fields. We need to be able to select the products in that location and assign them to a wall at a position. The wall level tab would show an elevation view of that wall and its products. We should be able to edit wall attributes. We should be able to move the products on the wall, remove products from the wall, or add products to the wall from a small user-specified library of products. The product level tab should list its attributes and have them be editable.
+
+Specification groups are containers for groups of attributes called prompts. We’ll be dealing with main two kinds of prompt components, global prompts and wizard prompts. The values we’ll be setting these prompts to could come from multiple sources: custom fields, key-value data from json and csv imports, or user entered. Projects can contain multiple specification groups, products are assigned one specification group. Walls and Products can also have their own prompts.
+
+Most of this information needs to be nullable, as we aren’t creating projects and products from whole cloth, except walls, we’re importing this information into a program that has models and templates already completed with information and the values we’re bringing in will modify them to suit our needs. Even the specification groups, and global and wizard prompts are complete. I can’t import a spec group that does not already exist. Don’t worry about the materials listed in the example xml files. We have setup parametric materials in the program that take prompt values in the wizard prompts.
+
+Project Export
+Project export is straightforward. We need to take all of our work and export it in a defined format. I want this to be a generic layer at the top so that if someone using a different system needs to add an exporter for their needs it will be less difficult. For my purposes we’ll be exporting an xml file to Microvellum. I also need to export an xlsx file with some of the prompt information on it. Since it’s it heavily formatted with rules, named ranges, and multiple worksheets, I don’t know if it’s easier to create this or to just change the data on an existing template.
+
+MVP
+For MVP the necessary functionality is pretty much what’s described above. Import data from Innergy from API calls and json import, add to it and manipulate it as needed, and export it to Microvellum as xml and xlsx. We’ll use sqlite locally for data persistence so that the projects can have their own .db file and directory location that can also be used for the export files. We will also need to be able to sore a few settings like API keys, for MVP this could just be an .env file.
+
+Roadmap For The Future
+I’ll list some features that I know will need to be developed later, it’s not exhaustive and they’re in no particular order of importance:
+
+o	Splash screen with sign in. This will be necessary for networked installs were we will need separate admin and user roles and permissions
+o	Adding a PDF viewer underneath the plan view 2D canvas so that walls can be drawn on top of architectural plans using the geometry in the pdf as snap points.
+o	Parametric determination of things like the origin of a room’s walls based on their size, which would determine where it was drawn from memory in a .dwg file, and many other things adjacent to this.
+o	In app libraries of prompts and products to be added to a project.
+o	Storage of system and user settings in the windows registry or an .ini/.conf file for Linux
+
+Example Data
+I have example data in the code base in the example_data directory.
+
+In the innergy directory the csv folder is an example of what is available for extracting some of our prompt values, we’ll use this data in other ways as well. The json file that begins with Material Legend is a json version of this same data. We don’t have to use or accept both formats, but it is available in both and I’m open to which one you think we should use. The json folder contains example responses for the api endpoints we’ll be hitting.
+The microvellum directory has some example xml files. Now, these files don’t all contain that same fields but we will need a complete set of the fields available. Like I said before, we’re exporting select values not trying to create from scratch.
+
+There’s also an example_workbook directory contains an actual example of the product in microvellum. The file extensions are all different, but they all operate the same as an xlsx file. The Master Cabinet is a cabinet product that can be changed into many different kinds of cabinets like a base, upper, tall, open or with doors or drawers, etc. All of this is controlled through it’s prompts. Those prompts are all connected to the other workbooks like global, wizard and hardware. I don’t know if these will actually be of use but I included them for context of the actual purpose of the export.
+

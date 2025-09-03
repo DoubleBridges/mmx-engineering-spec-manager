@@ -1,14 +1,15 @@
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMainWindow, QMenu, QMenuBar, QTabWidget, QWidget
-from PySide6.QtCore import QCoreApplication, Signal
+from PySide6.QtWidgets import QMainWindow, QTabWidget
 
-from mmx_engineering_spec_manager.views.projects.projects_tab import ProjectsTab
-from mmx_engineering_spec_manager.views.workspace.workspace_tab import WorkspaceTab
+from .export.export_tab import ExportTab
+from .projects.projects_tab import ProjectsTab
+from .workspace.workspace_tab import WorkspaceTab
 
 
 class MainWindow(QMainWindow):
-    close_event_signal = Signal()
     window_ready_signal = Signal()
+    close_event_signal = Signal()
 
     def __init__(self):
         super().__init__()
@@ -28,20 +29,23 @@ class MainWindow(QMainWindow):
         # Connect the 'Exit' action to the close method
         self.exit_action.triggered.connect(self.close)
 
-        # Create the QTabWidget
+        # Create the QTabWidget and set it as the central widget
         self.tab_widget = QTabWidget()
         self.setCentralWidget(self.tab_widget)
 
         # Create and add the 'Projects' tab
         self.projects_tab = ProjectsTab()
+        self.projects_detail_view = self.projects_tab.projects_detail_view
         self.tab_widget.addTab(self.projects_tab, "Projects")
 
-        # Create and add the 'Workspace' tab
         self.workspace_tab = WorkspaceTab()
         self.tab_widget.addTab(self.workspace_tab, "Workspace")
 
-    def showEvent(self, event):
-        super().showEvent(event)
+        self.export_tab = ExportTab()
+        self.tab_widget.addTab(self.export_tab, "Export")
+
+    def show(self):
+        super().show()
         self.window_ready_signal.emit()
 
     def closeEvent(self, event):

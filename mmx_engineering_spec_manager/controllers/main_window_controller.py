@@ -1,33 +1,43 @@
 from PySide6.QtCore import QObject
 
+from .export_controller import ExportController
+from .projects_controller import ProjectsController
+from .workspace_controller import WorkspaceController
+
 
 class MainWindowController(QObject):
     def __init__(self, main_window, data_manager):
         super().__init__()
         self.main_window = main_window
         self.data_manager = data_manager
+        self._projects_controller = None
+        self._workspace_controller = None
+        self._export_controller = None
 
         self.main_window.window_ready_signal.connect(self.initialize)
-        self.connect_projects_detail_view(self.main_window.projects_detail_view)
 
     def initialize(self):
-        self.connect_projects_tab(self.main_window.projects_tab)
-        self.load_projects()
+        self._projects_controller = ProjectsController(
+            data_manager=self.data_manager,
+            projects_tab=self.main_window.projects_tab,
+            projects_detail_view=self.main_window.projects_detail_view
+        )
 
-    def connect_projects_tab(self, projects_tab):
-        projects_tab.load_projects_signal.connect(self.load_projects)
-        projects_tab.open_project_signal.connect(self.open_project)
+        self._workspace_controller = WorkspaceController(
+            data_manager=self.data_manager,
+            workspace_tab=self.main_window.workspace_tab
+        )
 
-    def connect_projects_detail_view(self, projects_detail_view):
-        projects_detail_view.save_button_clicked_signal.connect(self.save_project)
+        self._export_controller = ExportController(
+            data_manager=self.data_manager,
+            export_tab=self.main_window.export_tab
+        )
 
-    def load_projects(self):
-        projects = self.data_manager.get_all_projects()
-        self.main_window.projects_tab.display_projects(projects)
+        # Connect the controllers
+        self._projects_controller.project_opened_signal.connect(
+            self._workspace_controller.set_active_project
+        )
 
-    def open_project(self, project):
-        project = self.data_manager.get_project_by_id(project.id)
-        self.main_window.projects_detail_view.display_project(project)
-
-    def save_project(self, project_data):
-        self.data_manager.save_project(project_data)
+        self._projects_controller.project_opened_signal.connect(
+            self._export_controller.set_active_project
+        )

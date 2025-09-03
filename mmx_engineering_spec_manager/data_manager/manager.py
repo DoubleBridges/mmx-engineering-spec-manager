@@ -1,20 +1,37 @@
-from mmx_engineering_spec_manager.db_models.project import Project
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from mmx_engineering_spec_manager.db_models.appliance_callout import \
+    ApplianceCallout
+from mmx_engineering_spec_manager.db_models.custom_field import CustomField
+from mmx_engineering_spec_manager.db_models.database_config import Base
+from mmx_engineering_spec_manager.db_models.finish_callout import FinishCallout
+from mmx_engineering_spec_manager.db_models.global_prompts import GlobalPrompts
+from mmx_engineering_spec_manager.db_models.hardware_callout import \
+    HardwareCallout
 from mmx_engineering_spec_manager.db_models.location import Location
 from mmx_engineering_spec_manager.db_models.product import Product
+from mmx_engineering_spec_manager.db_models.project import Project
+from mmx_engineering_spec_manager.db_models.prompt import Prompt
+from mmx_engineering_spec_manager.db_models.sink_callout import SinkCallout
+from mmx_engineering_spec_manager.db_models.specification_group import \
+    SpecificationGroup
 from mmx_engineering_spec_manager.db_models.wall import Wall
-from mmx_engineering_spec_manager.db_models.custom_field import CustomField
-from mmx_engineering_spec_manager.db_models.global_prompts import GlobalPrompts
 from mmx_engineering_spec_manager.db_models.wizard_prompts import WizardPrompts
 
 
 class DataManager:
     def __init__(self):
-        pass
+        engine = create_engine("sqlite:///projects.db")
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+        self.session = Session()
 
-    def save_project(self, raw_data, session):
+    def save_project(self, raw_data, session=None):
         self.create_or_update_project(raw_data, session)
 
-    def save_project_with_collections(self, raw_data, session):
+    def save_project_with_collections(self, raw_data, session=None):
+        db_session = session if session is not None else self.session
         project = Project(
             number=raw_data.get("number"),
             name=raw_data.get("name"),
@@ -78,17 +95,20 @@ class DataManager:
                 )
                 project.wizard_prompts.append(wizard_prompts)
 
-        session.add(project)
-        session.commit()
+        db_session.add(project)
+        db_session.commit()
 
-    def get_all_projects(self, session):
-        return session.query(Project).all()
+    def get_all_projects(self, session=None):
+        db_session = session if session is not None else self.session
+        return db_session.query(Project).all()
 
-    def get_project_by_id(self, project_id, session):
-        return session.query(Project).get(project_id)
+    def get_project_by_id(self, project_id, session=None):
+        db_session = session if session is not None else self.session
+        return db_session.query(Project).get(project_id)
 
-    def create_or_update_project(self, raw_data, session):
-        project = session.query(Project).filter_by(number=raw_data.get("number")).first()
+    def create_or_update_project(self, raw_data, session=None):
+        db_session = session if session is not None else self.session
+        project = db_session.query(Project).filter_by(number=raw_data.get("number")).first()
         if project:
             project.name = raw_data.get("name")
             project.job_description = raw_data.get("job_description")
@@ -98,6 +118,6 @@ class DataManager:
                 name=raw_data.get("name"),
                 job_description=raw_data.get("job_description")
             )
-            session.add(project)
-        session.commit()
+            db_session.add(project)
+        db_session.commit()
         return project

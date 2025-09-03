@@ -1,232 +1,89 @@
 from PySide6.QtCore import QObject, Signal
 
 from mmx_engineering_spec_manager.controllers.main_window_controller import MainWindowController
-from mmx_engineering_spec_manager.db_models.project import Project
 
 
 class MockProjectsDetailView(QObject):
-    save_button_clicked_signal = Signal(object)
+    pass
 
 
 class MockProjectsTab(QObject):
-    open_project_signal = Signal(object)
-    load_projects_signal = Signal()
+    pass
 
-    def display_projects(self, projects):
-        pass
 
+class MockWorkspaceTab(QObject):
+    pass
+
+class MockExportTab(QObject):
+    pass
 
 class MockMainWindow(QObject):
     window_ready_signal = Signal()
-    projects_tab = MockProjectsTab()
-    projects_detail_view = MockProjectsDetailView()
 
-    def __init__(self, projects_tab=MockProjectsTab(), projects_detail_view=MockProjectsDetailView()):
+    def __init__(self):
         super().__init__()
-        self.projects_tab = projects_tab
-        self.projects_detail_view = projects_detail_view
+        self.projects_tab = MockProjectsTab()
+        self.projects_detail_view = MockProjectsDetailView()
+        self.workspace_tab = MockWorkspaceTab()
+        self.export_tab = MockExportTab()
 
 
-def test_controller_loads_projects_on_signal(mocker):
+def test_main_controller_initializes_controllers(mocker):
     """
-    Test that the controller's load_projects method is called when the signal is emitted.
+    Test that MainWindowController initializes its child controllers on window_ready_signal.
     """
-    # Create a mock controller and a mock ProjectsTab
-    mock_projects_tab = MockProjectsTab()
-    mock_controller = mocker.Mock()
-
-    # Call the method that connects the signal to the slot
-    MainWindowController.connect_projects_tab(mock_controller, mock_projects_tab)
-
-    # Simulate the signal being emitted
-    mock_projects_tab.load_projects_signal.emit()
-
-    # Assert that the controller's load_projects method was called
-    mock_controller.load_projects.assert_called_once()
-
-def test_controller_loads_projects_from_data_manager(mocker):
-    """
-    Test that the controller's load_projects method calls the DataManager.
-    """
-    # Create mock DataManager
+    mock_main_window = MockMainWindow()
     mock_data_manager = mocker.Mock()
-    mock_data_manager.get_all_projects.return_value = []
 
-    # Create a mock main window
-    mock_main_window = mocker.Mock()
-
-    # Create a new controller instance with the mocked DataManager
-    controller = MainWindowController(
-        main_window=mock_main_window,
-        data_manager=mock_data_manager,
+    # Patch the controller classes in the context of the main_window_controller module
+    mock_projects_controller_class = mocker.patch(
+        'mmx_engineering_spec_manager.controllers.main_window_controller.ProjectsController'
+    )
+    mock_workspace_controller_class = mocker.patch(
+        'mmx_engineering_spec_manager.controllers.main_window_controller.WorkspaceController'
     )
 
-    # Call the method we want to test
-    controller.load_projects()
+    mock_export_controller_class = mocker.patch(
+        'mmx_engineering_spec_manager.controllers.main_window_controller.ExportController'
+    )
 
-    # Assert that the DataManager's method was called
-    mock_data_manager.get_all_projects.assert_called_once()
-
-def test_controller_displays_projects_in_view(mocker):
-    """
-    Test that the controller's load_projects method updates the view.
-    """
-    # Create mock DataManager
-    mock_project_1 = Project(number="101", name="Test Project 1")
-    mock_project_2 = Project(number="102", name="Test Project 2")
-    mock_data_manager = mocker.Mock()
-    mock_data_manager.get_all_projects.return_value = [mock_project_1, mock_project_2]
-
-    # Create mock ProjectsTab
-    mock_projects_tab = mocker.Mock()
-
-    # Create a mock main window
-    mock_main_window = mocker.Mock()
-    mock_main_window.projects_tab = mock_projects_tab
-    mock_main_window.central_widget = mock_projects_tab
-
-    # Create a new controller instance with the mocked DataManager
+    # Create the main controller
     controller = MainWindowController(
         main_window=mock_main_window,
         data_manager=mock_data_manager
     )
 
-    # Call the method we want to test
-    controller.load_projects()
-
-    # Assert that the ProjectsTab's display_projects method was called with the projects
-    mock_projects_tab.display_projects.assert_called_once_with([mock_project_1, mock_project_2])
-
-def test_controller_opens_project_on_signal(mocker):
-    """
-    Test that the controller's open_project method is called when the signal is emitted.
-    """
-    # Create a mock controller and a mock ProjectsTab
-    mock_projects_tab = MockProjectsTab()
-    mock_main_window = MockMainWindow(projects_tab=mock_projects_tab)
-    mock_controller = mocker.Mock()
-
-    # Create a mock project object to be passed with the signal
-    mock_project = Project(
-        number="101",
-        name="Test Project",
-        job_description="A complete project example."
-    )
-
-    # Call the method that connects the signal to the slot
-    MainWindowController.connect_projects_tab(mock_controller, mock_projects_tab)
-
-    # Simulate the signal being emitted with the mock project
-    mock_projects_tab.open_project_signal.emit(mock_project)
-
-    # Assert that the controller's open_project method was called
-    mock_controller.open_project.assert_called_once_with(mock_project)
-
-def test_controller_loads_projects_on_window_ready_signal(mocker):
-    """
-    Test that the controller's load_projects method is called on initialization.
-    """
-    # Create a mock ProjectsTab
-    mock_projects_tab = MockProjectsTab()
-
-    # Create a mock main window
-    mock_main_window = MockMainWindow(projects_tab=mock_projects_tab)
-
-    # Create mock DataManager
-    mock_data_manager = mocker.Mock()
-
-    # Create a new controller instance
-    controller = MainWindowController(
-        main_window=mock_main_window,
-        data_manager=mock_data_manager
-    )
-
-    # Patch the load_projects method to assert it is called on init
-    mocker.patch.object(controller, 'load_projects')
-
-    # Simulate the window_ready_signal being emitted
+    # Simulate the window ready signal
     mock_main_window.window_ready_signal.emit()
 
-    # Assert that the load_projects method was called exactly once
-    controller.load_projects.assert_called_once()
-
-def test_controller_saves_project_on_signal(mocker):
-    """
-    Test that the controller's save_project method is called when the signal is emitted.
-    """
-    # Create a mock controller and a mock ProjectsDetailView
-    mock_projects_detail_view = MockProjectsDetailView()
-    mock_main_window = MockMainWindow(projects_detail_view=mock_projects_detail_view)
-    mock_controller = mocker.Mock()
-
-    # Create a mock dictionary of updated project data
-    mock_project_data = {
-        "number": "101",
-        "name": "Updated Project Name",
-        "job_description": "Updated project description."
-    }
-
-    # Call the method that connects the signal to the slot
-    MainWindowController.connect_projects_detail_view(mock_controller, mock_projects_detail_view)
-
-    # Simulate the signal being emitted with the mock project data
-    mock_projects_detail_view.save_button_clicked_signal.emit(mock_project_data)
-
-    # Assert that the controller's save_project method was called
-    mock_controller.save_project.assert_called_once_with(mock_project_data)
-
-def test_controller_saves_project_with_data_manager(mocker):
-    """
-    Test that the controller's save_project method calls the DataManager.
-    """
-    # Create mock DataManager
-    mock_data_manager = mocker.Mock()
-
-    # Create a mock main window
-    mock_main_window = mocker.Mock()
-
-    # Create a new controller instance with the mocked DataManager
-    controller = MainWindowController(
-        main_window=mock_main_window,
-        data_manager=mock_data_manager
+    # Assert that ProjectsController was instantiated once with the correct arguments
+    mock_projects_controller_class.assert_called_once_with(
+        data_manager=mock_data_manager,
+        projects_tab=mock_main_window.projects_tab,
+        projects_detail_view=mock_main_window.projects_detail_view
     )
 
-    # Create a mock dictionary of updated project data
-    mock_project_data = {
-        "number": "101",
-        "name": "Updated Project Name",
-        "job_description": "Updated project description."
-    }
-
-    # Call the method we want to test
-    controller.save_project(mock_project_data)
-
-    # Assert that the DataManager's method was called with the correct data
-    mock_data_manager.save_project.assert_called_once_with(mock_project_data)
-
-
-def test_controller_displays_opened_project_details(mocker):
-    """
-    Test that the controller's open_project method displays the project details.
-    """
-    # Create mock Project, DataManager, and ProjectsDetailView
-    mock_project = Project(number="101", name="Test Project")
-    mock_data_manager = mocker.Mock()
-    mock_data_manager.get_project_by_id.return_value = mock_project
-    mock_projects_detail_view = mocker.Mock()
-
-    # Create mock main window
-    mock_main_window = mocker.Mock()
-    mock_main_window.projects_detail_view = mock_projects_detail_view
-
-    # Create a new controller instance with the mocked DataManager
-    controller = MainWindowController(
-        main_window=mock_main_window,
-        data_manager=mock_data_manager
+    # Assert that WorkspaceController was instantiated once
+    mock_workspace_controller_class.assert_called_once_with(
+        data_manager=mock_data_manager,
+        workspace_tab=mock_main_window.workspace_tab
     )
 
-    # Call the method we want to test
-    controller.open_project(mock_project)
+    # Assert that ExportController was instantiated once
+    mock_export_controller_class.assert_called_once_with(
+        data_manager=mock_data_manager,
+        export_tab=mock_main_window.export_tab
+    )
 
-    # Assert that the ProjectsDetailView's display_project method was called
-    mock_projects_detail_view.display_project.assert_called_once_with(mock_project)
+    # Assert that the signal from projects_controller was connected to workspace_controller's slot
+    mock_projects_controller_instance = mock_projects_controller_class.return_value
+    mock_workspace_controller_instance = mock_workspace_controller_class.return_value
+    mock_export_controller_instance = mock_export_controller_class.return_value
+
+    mock_projects_controller_instance.project_opened_signal.connect.assert_any_call(
+        mock_workspace_controller_instance.set_active_project
+    )
+
+    mock_projects_controller_instance.project_closed_signal.connect.asset_any_call(
+        mock_workspace_controller_instance.set_active_project
+    )
