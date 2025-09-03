@@ -11,6 +11,10 @@ def main():
     """Main function to run the application."""
     app = QApplication(sys.argv)
 
+    # Set application metadata for QSettings, QStandardPaths, etc.
+    app.setOrganizationName("MMX")
+    app.setApplicationName("Engineering Spec Manager")
+
     # Initialize the database and data manager
     data_manager = DataManager()
 

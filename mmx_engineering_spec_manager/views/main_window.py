@@ -1,10 +1,11 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMainWindow, QTabWidget
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QCloseEvent, QAction
+from PySide6.QtWidgets import (QMainWindow, QTabWidget)
 
 from .export.export_tab import ExportTab
 from .projects.projects_tab import ProjectsTab
 from .workspace.workspace_tab import WorkspaceTab
+from PySide6.QtCore import QTimer
 
 
 class MainWindow(QMainWindow):
@@ -46,7 +47,7 @@ class MainWindow(QMainWindow):
 
     def show(self):
         super().show()
-        self.window_ready_signal.emit()
+        QTimer.singleShot(0, self.window_ready_signal.emit)
 
     def closeEvent(self, event):
         """

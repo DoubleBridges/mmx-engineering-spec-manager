@@ -7,12 +7,10 @@ from .workspace_controller import WorkspaceController
 
 class MainWindowController(QObject):
     def __init__(self, main_window, data_manager):
-        super().__init__()
+        super().__init__(main_window)
         self.main_window = main_window
         self.data_manager = data_manager
         self._projects_controller = None
-        self._workspace_controller = None
-        self._export_controller = None
 
         self.main_window.window_ready_signal.connect(self.initialize)
 

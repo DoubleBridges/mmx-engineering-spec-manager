@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+
+from PySide6.QtCore import QStandardPaths
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -7,22 +11,29 @@ from mmx_engineering_spec_manager.db_models.custom_field import CustomField
 from mmx_engineering_spec_manager.db_models.database_config import Base
 from mmx_engineering_spec_manager.db_models.finish_callout import FinishCallout
 from mmx_engineering_spec_manager.db_models.global_prompts import GlobalPrompts
-from mmx_engineering_spec_manager.db_models.hardware_callout import \
-    HardwareCallout
+from mmx_engineering_spec_manager.db_models.hardware_callout import HardwareCallout
 from mmx_engineering_spec_manager.db_models.location import Location
 from mmx_engineering_spec_manager.db_models.product import Product
 from mmx_engineering_spec_manager.db_models.project import Project
 from mmx_engineering_spec_manager.db_models.prompt import Prompt
 from mmx_engineering_spec_manager.db_models.sink_callout import SinkCallout
-from mmx_engineering_spec_manager.db_models.specification_group import \
-    SpecificationGroup
+from mmx_engineering_spec_manager.db_models.specification_group import SpecificationGroup
 from mmx_engineering_spec_manager.db_models.wall import Wall
 from mmx_engineering_spec_manager.db_models.wizard_prompts import WizardPrompts
 
 
 class DataManager:
     def __init__(self):
-        engine = create_engine("sqlite:///projects.db")
+        # Get the standard location for application data
+        data_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation)
+
+        # Create the directory if it doesn't exist
+        Path(data_dir).mkdir(parents=True, exist_ok=True)
+
+        # Define the database path and initialize the engine
+        db_path = os.path.join(data_dir, "projects.db")
+        engine = create_engine(f"sqlite:///{db_path}")
+
         Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
         self.session = Session()
