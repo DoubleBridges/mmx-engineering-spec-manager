@@ -1,7 +1,7 @@
 import os
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QStandardItemModel, QStandardItem
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableView, QPushButton, QPlainTextEdit
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableView, QPushButton, QPlainTextEdit, QHeaderView
 
 from .projects_detail_view import ProjectsDetailView
 
@@ -51,16 +51,10 @@ class ProjectsTab(QWidget):
             ]
             model.appendRow(row)
         self.projects_table.setModel(model)
-        # Enlarge 2nd and 3rd columns (index 1 and 2) to be 3x wider than baseline
-        try:
-            header = self.projects_table.horizontalHeader()
-            for col in (1, 2):
-                base = max(self.projects_table.columnWidth(col), header.sectionSizeHint(col))
-                new_w = int(base * 3)
-                header.resizeSection(col, new_w)
-        except Exception:  # pragma: no cover
-            # If running in a headless/special environment where header isn't available, ignore
-            pass  # pragma: no cover
+        header = self.projects_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        # header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setStretchLastSection(True)
 
     def display_log_text(self, text: str):
         try:
