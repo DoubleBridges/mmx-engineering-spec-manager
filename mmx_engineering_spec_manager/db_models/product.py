@@ -12,9 +12,17 @@ class Product(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
     quantity = Column(Integer)
+    # Dimensions: Innergy x=width, y=depth, z=height
     width = Column(Float)
     height = Column(Float)
     depth = Column(Float)
+    # Position on wall for Microvellum export origins (all optional for MVP)
+    # XOrigin: distance from right side of wall to product's rightmost x (we store origin for left pos via helpers)
+    x_origin_from_right = Column(Float, nullable=True)
+    # YOrigin: distance from wall face (plan view y)
+    y_origin_from_face = Column(Float, nullable=True)
+    # ZOrigin: distance from bottom of wall (elevation y)
+    z_origin_from_bottom = Column(Float, nullable=True)
 
     project_id = Column(Integer, ForeignKey('projects.id'))
     location_id = Column(Integer, ForeignKey('locations.id'))

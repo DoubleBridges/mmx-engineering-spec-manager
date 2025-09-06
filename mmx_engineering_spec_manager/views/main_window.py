@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (QMainWindow, QTabWidget)
 from .export.export_tab import ExportTab
 from .projects.projects_tab import ProjectsTab
 from .workspace.workspace_tab import WorkspaceTab
+from .attributes.attributes_tab import AttributesTab
 from PySide6.QtCore import QTimer
 
 
@@ -38,6 +39,10 @@ class MainWindow(QMainWindow):
         self.projects_tab = ProjectsTab()
         self.projects_detail_view = self.projects_tab.projects_detail_view
         self.tab_widget.addTab(self.projects_tab, "Projects")
+
+        # Insert new Attributes tab between Projects and Workspace
+        self.attributes_tab = AttributesTab()
+        self.tab_widget.addTab(self.attributes_tab, "Attributes")
 
         self.workspace_tab = WorkspaceTab()
         self.tab_widget.addTab(self.workspace_tab, "Workspace")

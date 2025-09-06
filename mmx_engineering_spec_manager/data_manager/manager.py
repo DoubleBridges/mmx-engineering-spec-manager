@@ -21,22 +21,17 @@ from mmx_engineering_spec_manager.db_models.specification_group import Specifica
 from mmx_engineering_spec_manager.db_models.wall import Wall
 from mmx_engineering_spec_manager.db_models.wizard_prompts import WizardPrompts
 from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
+from mmx_engineering_spec_manager.utilities.persistence import create_engine_and_sessionmaker
+from mmx_engineering_spec_manager.utilities.settings import get_settings
+from mmx_engineering_spec_manager.utilities.logging_config import get_logger
 
 
 class DataManager:
     def __init__(self):
-        # Get the standard location for application data
-        data_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation)
-
-        # Create the directory if it doesn't exist
-        Path(data_dir).mkdir(parents=True, exist_ok=True)
-
-        # Define the database path and initialize the engine
-        db_path = os.path.join(data_dir, "projects.db")
-        engine = create_engine(f"sqlite:///{db_path}")
-
+        # Initialize DB engine/session using centralized persistence config (supports SQLite/Postgres)
+        engine, Session = create_engine_and_sessionmaker()
+        # Ensure schema exists
         Base.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine)
         self.session = Session()
 
     def save_project(self, raw_data, session=None):
@@ -117,20 +112,35 @@ class DataManager:
     def sync_projects_from_innergy(self, session=None):
         """
         Imports projects from Innergy API and saves them to the database.
+        Raises RuntimeError on configuration or HTTP errors; callers should handle and surface to UI.
         """
+        logger = get_logger(__name__)
         db_session = session if session is not None else self.session
+        settings = get_settings()
+        if not settings.innergy_base_url or not settings.innergy_api_key:
+            logger.warning(
+                "Innergy API key or base URL missing; proceeding (tests may mock importer). UI should validate settings before invoking sync."
+            )
         importer = InnergyImporter()
-        projects_data = importer.get_projects()
-        if projects_data:
-            for project_data in projects_data:
-                # Adapt the Innergy data to the format expected by our database models
-                formatted_data = {
-                    "number": project_data.get("Number"),
-                    "name": project_data.get("Name"),
-                    "job_description": project_data.get("Address", "")
-                }
-                self.create_or_update_project(formatted_data, db_session)
-            db_session.commit()
+        logger.info("Starting Innergy projects sync from %s", settings.innergy_base_url)
+        try:
+            projects_data = importer.get_projects()
+            imported = 0
+            if projects_data:
+                for project_data in projects_data:
+                    # Adapt the Innergy data to the format expected by our database models
+                    formatted_data = {
+                        "number": project_data.get("Number"),
+                        "name": project_data.get("Name"),
+                        "job_description": project_data.get("Address", "")
+                    }
+                    self.create_or_update_project(formatted_data, db_session)
+                    imported += 1
+                db_session.commit()
+            logger.info("Innergy projects sync finished. Imported/updated: %d", imported)
+        except Exception as e:
+            logger.exception("Innergy projects sync failed: %s", e)
+            raise
 
     def get_project_by_id(self, project_id, session=None):
         db_session = session if session is not None else self.session
