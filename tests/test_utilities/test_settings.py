@@ -42,7 +42,7 @@ def test_settings_defaults_consistent_with_persistence(monkeypatch):
     _reset_settings_singleton()
     s = settings_module.get_settings()
 
-    assert s.innergy_base_url == "https://api.innergy.com"
+    assert s.innergy_base_url == "https://app.innergy.com"
     # database_url should equal the persistence helper's resolution
     assert s.database_url == get_database_url()
     # Optional paths default to None

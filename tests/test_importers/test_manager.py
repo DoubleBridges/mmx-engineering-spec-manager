@@ -28,8 +28,12 @@ def test_importer_manager_loads_innergy_importer(mocker):
 
     # Assert that the API call was made and the response was handled
     requests.get.assert_called_once_with(
-        "https://api.innergy.com/api/projects/12345",
-        headers={"Authorization": f"Bearer {os.getenv('INNERGY_API_KEY')}"}
+        "https://app.innergy.com/api/projects/12345",
+        headers={
+            "API-KEY": str(os.getenv("INNERGY_API_KEY") or ""),
+            "Accept": "*/*",
+            "Connection": "keep-alive",
+        },
     )
 
 

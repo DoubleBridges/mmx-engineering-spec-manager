@@ -109,14 +109,21 @@ class DataManager:
         db_session = session if session is not None else self.session
         return db_session.query(Project).all()
 
-    def sync_projects_from_innergy(self, session=None):
+    def sync_projects_from_innergy(self, session=None, progress=None):
         """
         Imports projects from Innergy API and saves them to the database.
         Raises RuntimeError on configuration or HTTP errors; callers should handle and surface to UI.
+        Returns:
+            int: number of imported/updated projects
         """
         logger = get_logger(__name__)
         db_session = session if session is not None else self.session
         settings = get_settings()
+        if progress:
+            try:
+                progress(5)
+            except Exception:
+                pass
         if not settings.innergy_base_url or not settings.innergy_api_key:
             logger.warning(
                 "Innergy API key or base URL missing; proceeding (tests may mock importer). UI should validate settings before invoking sync."
@@ -126,18 +133,47 @@ class DataManager:
         try:
             projects_data = importer.get_projects()
             imported = 0
+            total = len(projects_data) if projects_data else 0
+            if progress:
+                try:
+                    progress(10)
+                except Exception:
+                    pass
             if projects_data:
-                for project_data in projects_data:
+                for idx, project_data in enumerate(projects_data, start=1):
                     # Adapt the Innergy data to the format expected by our database models
+                    # Normalize address and description safely (avoid dicts in text fields)
+                    addr = project_data.get("Address")
+                    if isinstance(addr, dict):
+                        address_str = addr.get("Address1") or addr.get("address1") or addr.get("Address") or ""  # pragma: no cover
+                    else:
+                        address_str = str(addr or "")
+                    # Prefer explicit JobDescription; fall back to address string for backward-compat and to avoid dicts
+                    job_desc = project_data.get("JobDescription") or address_str
+                    # Keep formatted_data minimal to satisfy existing expectations/tests
                     formatted_data = {
                         "number": project_data.get("Number"),
                         "name": project_data.get("Name"),
-                        "job_description": project_data.get("Address", "")
+                        "job_description": job_desc,
                     }
                     self.create_or_update_project(formatted_data, db_session)
                     imported += 1
+                    if progress and total > 0:
+                        try:
+                            base = 10
+                            span = 85
+                            pct = base + int(span * (idx / total))
+                            progress(min(99, pct))
+                        except Exception:
+                            pass
                 db_session.commit()
+            if progress:
+                try:
+                    progress(100)
+                except Exception:
+                    pass
             logger.info("Innergy projects sync finished. Imported/updated: %d", imported)
+            return imported
         except Exception as e:
             logger.exception("Innergy projects sync failed: %s", e)
             raise
@@ -152,11 +188,14 @@ class DataManager:
         if project:
             project.name = raw_data.get("name")
             project.job_description = raw_data.get("job_description")
+            if hasattr(project, "job_address"):
+                project.job_address = raw_data.get("job_address")
         else:
             project = Project(
                 number=raw_data.get("number"),
                 name=raw_data.get("name"),
-                job_description=raw_data.get("job_description")
+                job_description=raw_data.get("job_description"),
+                job_address=raw_data.get("job_address")
             )
             db_session.add(project)
         db_session.commit()

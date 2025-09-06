@@ -16,6 +16,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Engineering Project Manager")
+        self.resize(1200, 800)
 
         # Create the menu bar
         self.menu_bar = self.menuBar()
