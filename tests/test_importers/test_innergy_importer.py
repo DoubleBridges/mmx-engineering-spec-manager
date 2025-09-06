@@ -26,8 +26,12 @@ def test_get_job_details_successful(mocker):
 
     # Assert that the API call was made and the response was handled
     requests.get.assert_called_once_with(
-        "https://api.innergy.com/api/projects/12345",
-        headers={"Authorization": f"Bearer {os.getenv('INNERGY_API_KEY')}"}
+        "https://app.innergy.com/api/projects/12345",
+        headers={
+            "API-KEY": str(os.getenv("INNERGY_API_KEY") or ""),
+            "Accept": "*/*",
+            "Connection": "keep-alive",
+        },
     )
 
 def test_get_job_details_returns_data(mocker):
@@ -74,8 +78,12 @@ def test_get_job_details_returns_data(mocker):
 
     # Assert that the correct API call was made
     requests.get.assert_called_once_with(
-        "https://api.innergy.com/api/projects/12345",
-        headers={"Authorization": f"Bearer {os.getenv('INNERGY_API_KEY')}"}
+        "https://app.innergy.com/api/projects/12345",
+        headers={
+            "API-KEY": str(os.getenv("INNERGY_API_KEY") or ""),
+            "Accept": "*/*",
+            "Connection": "keep-alive",
+        },
     )
 
 
@@ -92,7 +100,7 @@ def test_get_projects_returns_filtered_data(mocker):
                 "Name": "Project One",
                 "Customer": {"Name": "Customer A"},
                 "Address": {"Address1": "123 Main St", "City": "Anytown", "State": "CA"},
-                "Status": "Active"
+                "Status": "Open"
             },
             {
                 "Id": "456-def",
@@ -112,12 +120,6 @@ def test_get_projects_returns_filtered_data(mocker):
             "Number": "101",
             "Name": "Project One",
             "Address": {"Address1": "123 Main St", "City": "Anytown", "State": "CA"}
-        },
-        {
-            "Id": "456-def",
-            "Number": "102",
-            "Name": "Project Two",
-            "Address": {"Address1": "456 Oak Ave", "City": "Sometwon", "State": "NY"}
         }
     ]
 
@@ -139,8 +141,12 @@ def test_get_projects_returns_filtered_data(mocker):
 
     # Assert that the correct API call was made
     requests.get.assert_called_once_with(
-        "https://api.innergy.com/api/projects",
-        headers={"Authorization": f"Bearer {os.getenv('INNERGY_API_KEY')}"}
+        "https://app.innergy.com/api/projects",
+        headers={
+            "API-KEY": str(os.getenv("INNERGY_API_KEY") or ""),
+            "Accept": "*/*",
+            "Connection": "keep-alive",
+        },
     )
 
 def test_get_products_with_custom_fields_returns_data(mocker):

@@ -1,6 +1,7 @@
+import os
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QStandardItemModel, QStandardItem
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableView, QPushButton
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QTableView, QPushButton, QPlainTextEdit
 
 from .projects_detail_view import ProjectsDetailView
 
@@ -20,11 +21,19 @@ class ProjectsTab(QWidget):
         self.import_button = QPushButton("Import from Innergy")
         self.load_button = QPushButton("Load Projects")
         self.projects_detail_view = ProjectsDetailView()
+        self.log_view = QPlainTextEdit()
+        self.log_view.setReadOnly(True)
 
         layout = QVBoxLayout()
         layout.addWidget(self.import_button)
         layout.addWidget(self.load_button)
-        layout.addWidget(self.projects_table)
+
+        # Temporarily switch table to log view when debug flag is set
+        if os.getenv("DEBUG_SHOW_INNERGY_RESPONSE") == "1":
+            layout.addWidget(self.log_view)
+        else:
+            layout.addWidget(self.projects_table)
+
         self.setLayout(layout)
 
         self._connect_signals()
@@ -46,6 +55,12 @@ class ProjectsTab(QWidget):
             ]
             model.appendRow(row)
         self.projects_table.setModel(model)
+
+    def display_log_text(self, text: str):
+        try:
+            self.log_view.setPlainText(text)
+        except Exception:
+            pass
 
     def on_project_double_clicked(self, index):
         row = index.row()

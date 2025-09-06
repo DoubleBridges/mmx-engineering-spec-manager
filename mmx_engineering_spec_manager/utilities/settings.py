@@ -48,7 +48,7 @@ def get_settings() -> Settings:
 
     # Resolve values from environment with sensible defaults
     innergy_api_key = os.getenv("INNERGY_API_KEY")
-    innergy_base_url = os.getenv("INNERGY_BASE_URL", "https://api.innergy.com").rstrip("/")
+    innergy_base_url = os.getenv("INNERGY_BASE_URL", "https://app.innergy.com").rstrip("/")
 
     # Use the persistence helper for DB URL resolution (keeps compatibility)
     database_url = os.getenv("DATABASE_URL") or get_database_url()
