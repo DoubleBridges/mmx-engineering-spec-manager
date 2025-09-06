@@ -9,7 +9,6 @@ from .projects_detail_view import ProjectsDetailView
 class ProjectsTab(QWidget):
     open_project_signal = Signal(object)
     import_projects_signal = Signal()
-    load_projects_signal = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -19,14 +18,12 @@ class ProjectsTab(QWidget):
         # UI Elements
         self.projects_table = QTableView()
         self.import_button = QPushButton("Import from Innergy")
-        self.load_button = QPushButton("Load Projects")
         self.projects_detail_view = ProjectsDetailView()
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
 
         layout = QVBoxLayout()
         layout.addWidget(self.import_button)
-        layout.addWidget(self.load_button)
 
         # Temporarily switch table to log view when debug flag is set
         if os.getenv("DEBUG_SHOW_INNERGY_RESPONSE") == "1":
@@ -40,7 +37,6 @@ class ProjectsTab(QWidget):
 
     def _connect_signals(self):
         self.import_button.clicked.connect(self.import_projects_signal.emit)
-        self.load_button.clicked.connect(self.load_projects_signal.emit)
         self.projects_table.doubleClicked.connect(self.on_project_double_clicked)
 
     def display_projects(self, projects):
@@ -55,6 +51,16 @@ class ProjectsTab(QWidget):
             ]
             model.appendRow(row)
         self.projects_table.setModel(model)
+        # Enlarge 2nd and 3rd columns (index 1 and 2) to be 3x wider than baseline
+        try:
+            header = self.projects_table.horizontalHeader()
+            for col in (1, 2):
+                base = max(self.projects_table.columnWidth(col), header.sectionSizeHint(col))
+                new_w = int(base * 3)
+                header.resizeSection(col, new_w)
+        except Exception:  # pragma: no cover
+            # If running in a headless/special environment where header isn't available, ignore
+            pass  # pragma: no cover
 
     def display_log_text(self, text: str):
         try:

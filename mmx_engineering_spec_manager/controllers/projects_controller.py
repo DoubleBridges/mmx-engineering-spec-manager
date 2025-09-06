@@ -30,7 +30,6 @@ class ProjectsController(QObject):
         self.load_projects()
 
     def _connect_signals(self):
-        self.projects_tab.load_projects_signal.connect(self.load_projects)
         self.projects_tab.open_project_signal.connect(self.open_project)
         self.projects_detail_view.save_button_clicked_signal.connect(self.save_project)
         # Wire import to async handler

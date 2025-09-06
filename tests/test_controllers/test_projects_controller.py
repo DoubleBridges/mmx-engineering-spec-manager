@@ -13,7 +13,6 @@ class MockProjectsDetailView(QObject):
 
 class MockProjectsTab(QObject):
     open_project_signal = Signal(object)
-    load_projects_signal = Signal()
 
     def display_projects(self, projects):
         pass
@@ -41,27 +40,7 @@ def test_controller_loads_projects_on_init(mocker):
     mock_projects_tab.display_projects.assert_called_once_with([])
 
 
-def test_controller_reloads_projects_on_signal(mocker):
-    """
-    Test that the controller's load_projects method is called when the signal is emitted.
-    """
-    mock_data_manager = mocker.Mock()
-    mock_data_manager.get_all_projects.return_value = []
-    mock_projects_tab = MockProjectsTab()
-    mock_projects_detail_view = MockProjectsDetailView()
-
-    # Controller is created, which connects signals and calls load_projects once
-    controller = ProjectsController(
-        data_manager=mock_data_manager,
-        projects_tab=mock_projects_tab,
-        projects_detail_view=mock_projects_detail_view
-    )
-
-    # Simulate the signal being emitted again
-    mock_projects_tab.load_projects_signal.emit()
-
-    # Assert that load_projects was called twice (once on init, once on signal)
-    assert mock_data_manager.get_all_projects.call_count == 2
+# Removed obsolete reload signal test as UI button/signal were removed
 
 
 def test_controller_displays_projects_in_view(mocker):

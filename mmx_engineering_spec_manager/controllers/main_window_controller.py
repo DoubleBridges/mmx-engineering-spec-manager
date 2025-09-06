@@ -39,3 +39,9 @@ class MainWindowController(QObject):
         self._projects_controller.project_opened_signal.connect(
             self._export_controller.set_active_project
         )
+
+        # Wire MainWindow refresh (View->Refresh or F5) to reload projects
+        try:
+            self.main_window.refresh_requested.connect(self._projects_controller.load_projects)
+        except Exception:
+            pass

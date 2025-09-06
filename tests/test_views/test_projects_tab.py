@@ -29,20 +29,7 @@ def mock_projects():
         MockProject(number="102", name="Project Two", job_description="Description 2")
     ]
 
-def test_load_projects_button_emits_signal(qtbot):
-    """
-    Test that clicking the 'Load Projects' button emits a signal.
-    """
-    projects_tab = ProjectsTab()
-    qtbot.addWidget(projects_tab)
-
-    # Find the 'Load Projects' button
-    load_button = projects_tab.load_button
-    assert load_button is not None
-
-    # Use qtbot to simulate a click and check for a signal
-    with qtbot.waitSignal(projects_tab.load_projects_signal, timeout=1000):
-        qtbot.mouseClick(load_button, PySide6.QtCore.Qt.LeftButton)
+# Removed test for Load Projects button; button no longer exists.
 
 def test_projects_tab_displays_projects(qtbot, mock_projects):
     """
