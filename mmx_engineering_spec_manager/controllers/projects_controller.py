@@ -192,7 +192,15 @@ class ProjectsController(QObject):
     def open_project(self, project):
         """Opens a project and displays its details in the project detail view."""
         detailed_project = self.data_manager.get_project_by_id(project.id)
+        # Keep existing detail view rendering (covered by tests)
         self.projects_detail_view.display_project(detailed_project)
+        # Ask the tab to swap to the detail view if supported
+        try:
+            if hasattr(self.projects_tab, 'display_project_details'):
+                self.projects_tab.display_project_details(detailed_project)
+        except Exception:  # pragma: no cover
+            # Be resilient in tests/mocks
+            pass  # pragma: no cover
         self.project_opened_signal.emit(detailed_project)
 
     @Slot(dict)

@@ -32,6 +32,12 @@ class DataManager:
         engine, Session = create_engine_and_sessionmaker()
         # Ensure schema exists
         Base.metadata.create_all(engine)
+        # Run lightweight SQLite migration to add any missing product columns (safe no-op otherwise)
+        try:
+            from mmx_engineering_spec_manager.utilities.migrations import migrate_sqlite_products_add_missing_columns
+            migrate_sqlite_products_add_missing_columns(engine)
+        except Exception:  # pragma: no cover
+            pass
         self.session = Session()
 
     def save_project(self, raw_data, session=None):

@@ -19,8 +19,10 @@ class ProjectsTab(QWidget):
         self.projects_table = QTableView()
         self.import_button = QPushButton("Import from Innergy")
         self.projects_detail_view = ProjectsDetailView()
+        self.projects_detail_view.setVisible(False)
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
+        self.log_view.setVisible(os.getenv("DEBUG_SHOW_INNERGY_RESPONSE") == "1")
 
         layout = QVBoxLayout()
         layout.addWidget(self.import_button)
@@ -30,6 +32,8 @@ class ProjectsTab(QWidget):
             layout.addWidget(self.log_view)
         else:
             layout.addWidget(self.projects_table)
+        # Always add the detail view (hidden initially)
+        layout.addWidget(self.projects_detail_view)
 
         self.setLayout(layout)
 
@@ -53,12 +57,15 @@ class ProjectsTab(QWidget):
         self.projects_table.setModel(model)
         header = self.projects_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        # header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setStretchLastSection(True)
 
     def display_log_text(self, text: str):
         try:
             self.log_view.setPlainText(text)
+            if os.getenv("DEBUG_SHOW_INNERGY_RESPONSE") == "1":  # pragma: no cover
+                self.log_view.setVisible(True)  # pragma: no cover
+                self.projects_table.setVisible(False)  # pragma: no cover
+                self.projects_detail_view.setVisible(False)  # pragma: no cover
         except Exception:
             pass
 
@@ -70,7 +77,10 @@ class ProjectsTab(QWidget):
 
     def display_project_details(self, project):
         self.current_project = project
-        # In a real app, you might switch to a details view; for tests we just store it.
+        # Swap visibility: show details, hide list/log
+        self.projects_detail_view.setVisible(True)
+        self.projects_table.setVisible(False)
+        self.log_view.setVisible(False)
         try:
             self.projects_detail_view.display_project(project)
         except Exception:
