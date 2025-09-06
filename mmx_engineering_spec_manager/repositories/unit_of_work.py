@@ -40,6 +40,12 @@ class SqlAlchemyUnitOfWork:
 
     def __enter__(self) -> "SqlAlchemyUnitOfWork":
         self.session = self._session_factory()
+        # Keep attributes available after commit; prevents DetachedInstanceError for returned entities
+        try:
+            self.session.expire_on_commit = False
+        except Exception:  # pragma: no cover
+            # Some Session implementations may not expose this; ignore
+            pass  # pragma: no cover
         self.projects = SqlAlchemyProjectRepository(self.session)
         return self
 

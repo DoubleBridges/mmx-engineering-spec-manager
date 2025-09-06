@@ -12,6 +12,7 @@ from PySide6.QtCore import QTimer
 class MainWindow(QMainWindow):
     window_ready_signal = Signal()
     close_event_signal = Signal()
+    refresh_requested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -31,6 +32,14 @@ class MainWindow(QMainWindow):
 
         # Connect the 'Exit' action to the close method
         self.exit_action.triggered.connect(self.close)
+
+        # Add the 'View' menu with Refresh action (F5)
+        self.view_menu = self.menu_bar.addMenu("&View")
+        self.view_menu.setObjectName("view_menu")
+        self.refresh_action = QAction("&Refresh", self)
+        self.refresh_action.setShortcut("F5")
+        self.view_menu.addAction(self.refresh_action)
+        self.refresh_action.triggered.connect(self.refresh_requested.emit)
 
         # Create the QTabWidget and set it as the central widget
         self.tab_widget = QTabWidget()
