@@ -19,6 +19,7 @@ class Wall(Base):
     y_origin = Column(Float)
     z_origin = Column(Float)
     angle = Column(Float)
+    thicknesses = Column(Float)
 
     project_id = Column(Integer, ForeignKey('projects.id'))
     location_id = Column(Integer, ForeignKey('locations.id'))

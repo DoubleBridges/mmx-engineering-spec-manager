@@ -1,5 +1,6 @@
 pyside6
 pytest
+pytest-cov
 pytest-qt
 pytest-mock
 python-dotenv

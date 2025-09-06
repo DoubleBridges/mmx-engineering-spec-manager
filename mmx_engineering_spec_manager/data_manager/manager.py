@@ -20,6 +20,7 @@ from mmx_engineering_spec_manager.db_models.sink_callout import SinkCallout
 from mmx_engineering_spec_manager.db_models.specification_group import SpecificationGroup
 from mmx_engineering_spec_manager.db_models.wall import Wall
 from mmx_engineering_spec_manager.db_models.wizard_prompts import WizardPrompts
+from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
 
 
 class DataManager:
@@ -112,6 +113,24 @@ class DataManager:
     def get_all_projects(self, session=None):
         db_session = session if session is not None else self.session
         return db_session.query(Project).all()
+
+    def sync_projects_from_innergy(self, session=None):
+        """
+        Imports projects from Innergy API and saves them to the database.
+        """
+        db_session = session if session is not None else self.session
+        importer = InnergyImporter()
+        projects_data = importer.get_projects()
+        if projects_data:
+            for project_data in projects_data:
+                # Adapt the Innergy data to the format expected by our database models
+                formatted_data = {
+                    "number": project_data.get("Number"),
+                    "name": project_data.get("Name"),
+                    "job_description": project_data.get("Address", "")
+                }
+                self.create_or_update_project(formatted_data, db_session)
+            db_session.commit()
 
     def get_project_by_id(self, project_id, session=None):
         db_session = session if session is not None else self.session

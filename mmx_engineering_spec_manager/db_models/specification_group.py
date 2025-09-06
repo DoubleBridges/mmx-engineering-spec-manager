@@ -20,3 +20,4 @@ class SpecificationGroup(Base):
     hardware_callouts = relationship("HardwareCallout", back_populates="specification_group")
     sink_callouts = relationship("SinkCallout", back_populates="specification_group")
     appliance_callouts = relationship("ApplianceCallout", back_populates="specification_group")
+    products = relationship("Product", back_populates="specification_group")

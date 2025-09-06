@@ -41,3 +41,9 @@ def test_importer_manager_loads_project_setup_wizard_importer():
     importer = importer_manager.get_importer("project_setup_wizard")
 
     assert isinstance(importer, ProjectSetupWizardImporter)
+
+
+def test_importer_manager_returns_none_for_unknown():
+    from mmx_engineering_spec_manager.importers.manager import ImporterManager
+    manager = ImporterManager()
+    assert manager.get_importer("unknown-source") is None

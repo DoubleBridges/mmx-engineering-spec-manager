@@ -95,3 +95,18 @@ def test_projects_tab_displays_project_details(qtbot, mock_project):
 
     # Assert that the display_project_details method was called with the correct project object
     assert projects_tab.current_project == mock_project
+
+def test_import_projects_button_emits_signal(qtbot):
+    """
+    Test that clicking the 'Import from Innergy' button emits a signal.
+    """
+    projects_tab = ProjectsTab()
+    qtbot.addWidget(projects_tab)
+
+    # Find the 'Import from Innergy' button
+    import_button = projects_tab.import_button
+    assert import_button is not None
+
+    # Use qtbot to simulate a click and check for a signal
+    with qtbot.waitSignal(projects_tab.import_projects_signal, timeout=1000):
+        qtbot.mouseClick(import_button, PySide6.QtCore.Qt.LeftButton)
