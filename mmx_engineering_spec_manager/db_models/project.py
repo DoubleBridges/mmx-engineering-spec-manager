@@ -25,3 +25,28 @@ class Project(Base):
     hardware_callouts = relationship("HardwareCallout", back_populates="project")
     sink_callouts = relationship("SinkCallout", back_populates="project")
     appliance_callouts = relationship("ApplianceCallout", back_populates="project")
+
+    @property
+    def specification_groups(self):
+        """Derived collection of unique SpecificationGroup objects for this project.
+        It aggregates the specification_group from each product and returns a
+        stable, de-duplicated list. No DB schema change required.
+        """
+        # Collect unique by id while skipping None
+        seen = {}
+        for p in (self.products or []):
+            sg = getattr(p, "specification_group", None)
+            if sg is not None:
+                # Prefer id as key when available, else use name tuple to avoid duplicates
+                key = getattr(sg, "id", None)
+                if key is None:
+                    key = (getattr(sg, "name", None), id(sg))
+                if key not in seen:
+                    seen[key] = sg
+        # Deterministic order: by name (case-insensitive) then id
+        def sort_key(item):
+            sg = item[1]
+            name = getattr(sg, "name", "") or ""
+            sgid = getattr(sg, "id", 0) or 0
+            return (name.lower(), sgid)
+        return [sg for _, sg in sorted(seen.items(), key=sort_key)]

@@ -27,7 +27,7 @@ def test_migration_adds_missing_product_columns_sqlite():
     migrate_sqlite_products_add_missing_columns(engine)
 
     cols = _cols(engine, "products")
-    for c in ("width", "height", "depth", "x_origin_from_right", "y_origin_from_face", "z_origin_from_bottom"):
+    for c in ("width", "height", "depth", "x_origin_from_right", "y_origin_from_face", "z_origin_from_bottom", "specification_group_id"):
         assert c in cols
 
 
@@ -45,7 +45,8 @@ def test_migration_is_noop_when_columns_exist():
                 depth REAL,
                 x_origin_from_right REAL,
                 y_origin_from_face REAL,
-                z_origin_from_bottom REAL
+                z_origin_from_bottom REAL,
+                specification_group_id INTEGER
             )
             """
         )
