@@ -195,3 +195,42 @@ def test_get_products_with_custom_fields_returns_data(mocker):
 
     # Assert that the returned data is a filtered list
     assert products_data == expected_data
+
+
+def test_get_job_details_non_200_returns_none(mocker):
+    from unittest.mock import Mock
+    import requests
+    from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
+
+    mock_response = Mock()
+    mock_response.status_code = 404
+    mocker.patch.object(requests, 'get', return_value=mock_response)
+
+    importer = InnergyImporter()
+    assert importer.get_job_details(job_id="nope") is None
+
+
+def test_get_projects_non_200_returns_none(mocker):
+    from unittest.mock import Mock
+    import requests
+    from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
+
+    mock_response = Mock()
+    mock_response.status_code = 500
+    mocker.patch.object(requests, 'get', return_value=mock_response)
+
+    importer = InnergyImporter()
+    assert importer.get_projects() is None
+
+
+def test_get_products_non_200_returns_none(mocker):
+    from unittest.mock import Mock
+    import requests
+    from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
+
+    mock_response = Mock()
+    mock_response.status_code = 403
+    mocker.patch.object(requests, 'get', return_value=mock_response)
+
+    importer = InnergyImporter()
+    assert importer.get_products(job_id="nope") is None

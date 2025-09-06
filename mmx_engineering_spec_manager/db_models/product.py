@@ -19,9 +19,11 @@ class Product(Base):
     project_id = Column(Integer, ForeignKey('projects.id'))
     location_id = Column(Integer, ForeignKey('locations.id'))
     wall_id = Column(Integer, ForeignKey('walls.id'), nullable=True)
+    specification_group_id = Column(Integer, ForeignKey('specification_groups.id'), nullable=True)
 
     project = relationship("Project", back_populates="products")
     location = relationship("Location", back_populates="products")
     custom_fields = relationship("CustomField", back_populates="product")
     prompts = relationship("Prompt", back_populates="product")
     wall = relationship("Wall", back_populates="products")
+    specification_group = relationship("SpecificationGroup", back_populates="products")

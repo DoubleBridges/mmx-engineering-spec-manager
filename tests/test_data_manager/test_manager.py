@@ -84,3 +84,25 @@ def test_data_manager_creates_new_project(db_session, mocker,raw_data):
     # The session is a mock, so the commit will not happen.
     # We will need to check the state of the mock session.
     data_manager.create_or_update_project.assert_called_once_with(raw_data, db_session)
+
+
+def test_get_all_and_by_id_and_update(db_session, raw_data):
+    from mmx_engineering_spec_manager.data_manager.manager import DataManager
+    from mmx_engineering_spec_manager.db_models.project import Project
+
+    dm = DataManager()
+    # create
+    dm.save_project(raw_data, db_session)
+    projects = dm.get_all_projects(db_session)
+    assert projects and isinstance(projects, list)
+    proj = projects[0]
+    # by id
+    fetched = dm.get_project_by_id(proj.id, db_session)
+    assert fetched.id == proj.id
+    # update same number
+    updated_raw = dict(raw_data)
+    updated_raw.update({"name": "Updated Name", "job_description": "Updated Desc"})
+    dm.create_or_update_project(updated_raw, db_session)
+    refreshed = db_session.query(Project).filter_by(number=raw_data["number"]).first()
+    assert refreshed.name == "Updated Name"
+    assert refreshed.job_description == "Updated Desc"

@@ -148,3 +148,22 @@ def test_save_button_emits_signal(qtbot, mock_project_data):
 
     # Assert that the signal was emitted with the correct dictionary
     assert blocker.args[0] == expected_data
+
+
+def test_projects_detail_view_clears_form_on_redisplay(qtbot, mock_project_data):
+    view = ProjectsDetailView()
+    qtbot.addWidget(view)
+    # first display
+    view.display_project(mock_project_data)
+    assert view.form_layout.rowCount() == 3
+    # second display with different data
+    new_project = type(mock_project_data)(
+        number="202",
+        name="Another",
+        job_description="Second",
+        locations=[], products=[], walls=[], custom_fields=[], specification_groups=[], global_prompts=[], wizard_prompts=[]
+    )
+    view.display_project(new_project)
+    # still 3 rows and values updated
+    assert view.form_layout.rowCount() == 3
+    assert view.form_layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget().text() == "202"
