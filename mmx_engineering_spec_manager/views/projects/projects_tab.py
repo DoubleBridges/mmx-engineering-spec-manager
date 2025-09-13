@@ -1,7 +1,7 @@
 import os
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QStandardItemModel, QStandardItem
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableView, QPushButton, QPlainTextEdit, QHeaderView
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableView, QPushButton, QPlainTextEdit, QHeaderView, QLineEdit
 
 from .projects_detail_view import ProjectsDetailView
 
@@ -14,11 +14,14 @@ class ProjectsTab(QWidget):
         super().__init__(parent)
         self.projects = []
         self.current_project = None
+        self._row_to_project_index = []  # maps visible row -> original self.projects index
 
         # UI Elements
         self.projects_table = QTableView()
         self.import_button = QPushButton("Import from Innergy")
         self.load_button = QPushButton("Load Project")
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Search number or name")
         self.projects_detail_view = ProjectsDetailView()
         self.projects_detail_view.setVisible(False)
         self.log_view = QPlainTextEdit()
@@ -31,6 +34,7 @@ class ProjectsTab(QWidget):
         top_bar.addWidget(self.import_button)
         top_bar.addWidget(self.load_button)
         top_bar.addStretch(1)
+        top_bar.addWidget(self.search_input)
         layout.addLayout(top_bar)
 
         # Temporarily switch table to log view when debug flag is set
@@ -49,12 +53,16 @@ class ProjectsTab(QWidget):
         self.import_button.clicked.connect(self.import_projects_signal.emit)
         self.projects_table.doubleClicked.connect(self.on_project_double_clicked)
         self.load_button.clicked.connect(self.on_load_button_clicked)
+        self.search_input.textChanged.connect(self._on_search_text_changed)
 
     def display_projects(self, projects):
         self.projects = projects
+        self._apply_filter_and_refresh()
+
+    def _build_model_for_projects(self, subset):
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Number", "Name", "Job Description"])
-        for project in projects:
+        for project in subset:
             row = [
                 QStandardItem(getattr(project, "number", "")),
                 QStandardItem(getattr(project, "name", "")),
@@ -65,6 +73,26 @@ class ProjectsTab(QWidget):
         header = self.projects_table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         header.setStretchLastSection(True)
+
+    def _apply_filter_and_refresh(self):
+        # Compute filtered subset and mapping by number and name only
+        try:
+            query = (self.search_input.text() if self.search_input else "").strip().lower()
+        except Exception:
+            query = ""
+        row_map = []
+        subset = []
+        for idx, p in enumerate(self.projects):
+            num = (getattr(p, "number", "") or "")
+            name = (getattr(p, "name", "") or "")
+            if not query or (query in str(num).lower() or query in str(name).lower()):
+                subset.append(p)
+                row_map.append(idx)
+        self._row_to_project_index = row_map
+        self._build_model_for_projects(subset)
+
+    def _on_search_text_changed(self, _text):
+        self._apply_filter_and_refresh()
 
     def display_log_text(self, text: str):
         try:
@@ -78,8 +106,13 @@ class ProjectsTab(QWidget):
 
     def on_project_double_clicked(self, index):
         row = index.row()
-        if 0 <= row < len(self.projects):
-            project = self.projects[row]
+        # Map visible row to original project index if filtered
+        if 0 <= row < len(self._row_to_project_index):
+            orig_idx = self._row_to_project_index[row]
+        else:
+            orig_idx = row
+        if 0 <= orig_idx < len(self.projects):
+            project = self.projects[orig_idx]
             self.open_project_signal.emit(project)
 
     def on_load_button_clicked(self):
@@ -97,8 +130,13 @@ class ProjectsTab(QWidget):
                 target_row = idxs[0].row()
         if target_row is None:
             return
-        if 0 <= target_row < len(self.projects):
-            project = self.projects[target_row]
+        # Map visible row to original project index
+        if 0 <= target_row < len(self._row_to_project_index):
+            orig_idx = self._row_to_project_index[target_row]
+        else:
+            orig_idx = target_row
+        if 0 <= orig_idx < len(self.projects):
+            project = self.projects[orig_idx]
             self.open_project_signal.emit(project)
 
     def display_project_details(self, project):

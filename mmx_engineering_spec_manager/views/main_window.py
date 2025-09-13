@@ -73,6 +73,11 @@ class MainWindow(QMainWindow):
 
         # Connect project load events
         self.projects_tab.open_project_signal.connect(self._on_project_loaded)
+        # Focus Projects search field when window becomes ready
+        try:
+            self.window_ready_signal.connect(self._focus_projects_search)
+        except Exception:
+            pass
 
     def _set_non_project_tabs_enabled(self, enabled: bool):
         try:
@@ -97,6 +102,15 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
         self._set_non_project_tabs_enabled(True)
+
+    def _focus_projects_search(self):
+        """Set initial focus to the Projects tab search field when the window is ready."""
+        try:
+            # Ensure Projects tab is selected then focus the search input
+            self.tab_widget.setCurrentIndex(self._idx_projects)
+            self.projects_tab.search_input.setFocus()
+        except Exception:
+            pass
 
     def show(self):
         super().show()
