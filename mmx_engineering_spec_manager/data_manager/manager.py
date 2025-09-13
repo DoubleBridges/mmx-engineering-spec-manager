@@ -214,3 +214,40 @@ class DataManager:
             db_session.add(project)
         db_session.commit()
         return project
+
+    def replace_callouts_for_project(self, project_id: int, grouped: dict, session=None):
+        """
+        Replace all callouts for a project with the provided grouped callouts.
+        `grouped` is a dict with keys: "Finishes", "Hardware", "Sinks", "Appliances", "Uncategorized".
+        Values are lists of DTOs having attributes: name/material, tag, description.
+        Uncategorized items are ignored unless assigned a concrete type by the UI before saving.
+        """
+        db_session = session if session is not None else self.session
+        # Clear existing
+        db_session.query(FinishCallout).filter_by(project_id=project_id).delete(synchronize_session=False)
+        db_session.query(HardwareCallout).filter_by(project_id=project_id).delete(synchronize_session=False)
+        db_session.query(SinkCallout).filter_by(project_id=project_id).delete(synchronize_session=False)
+        db_session.query(ApplianceCallout).filter_by(project_id=project_id).delete(synchronize_session=False)
+
+        # Helper to add
+        def add_many(model_cls, items):
+            for d in items or []:
+                # Support either DTOs or dicts
+                name = getattr(d, 'name', None) or (d.get('name') if isinstance(d, dict) else None) or getattr(d, 'Name', None) or (d.get('Name') if isinstance(d, dict) else None)
+                tag = getattr(d, 'tag', None) or (d.get('tag') if isinstance(d, dict) else None) or getattr(d, 'Tag', None) or (d.get('Tag') if isinstance(d, dict) else None)
+                desc = getattr(d, 'description', None) or (d.get('description') if isinstance(d, dict) else None) or getattr(d, 'Description', None) or (d.get('Description') if isinstance(d, dict) else None)
+                if not name or not tag:
+                    continue
+                obj = model_cls(project_id=project_id)
+                # Map to CalloutMixin fields (material, tag, description)
+                setattr(obj, 'material', str(name))
+                setattr(obj, 'tag', str(tag))
+                setattr(obj, 'description', str(desc) if desc is not None else None)
+                db_session.add(obj)
+
+        add_many(FinishCallout, grouped.get("Finishes"))
+        add_many(HardwareCallout, grouped.get("Hardware"))
+        add_many(SinkCallout, grouped.get("Sinks"))
+        add_many(ApplianceCallout, grouped.get("Appliances"))
+        # Uncategorized are not persisted until categorized
+        db_session.commit()
