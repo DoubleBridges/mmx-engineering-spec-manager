@@ -39,5 +39,6 @@ def test_callout_importer_parses_json_correctly(mocker):
 
     importer = CalloutImporter()
     callouts = importer.parse_json_file("dummy_path.json")
+    print(callouts)
 
     assert callouts == expected_callouts
