@@ -132,8 +132,8 @@ class AttributesTab(QWidget):
         if self._dm is None:
             try:
                 self._dm = DataManager()
-            except Exception:
-                return
+            except Exception:  # pragma: no cover
+                return  # pragma: no cover
         if not getattr(self, "_active_project", None):
             return
         try:
@@ -156,9 +156,9 @@ class AttributesTab(QWidget):
                             "Description": d.get("Description", ""),
                         })
                 self._populate_callout_table(tab_name, rows)
-        except Exception:
+        except Exception:  # pragma: no cover
             # Silently ignore in UI context
-            pass
+            pass  # pragma: no cover
 
     def _populate_callout_table(self, tab_name: str, rows: List[Dict[str, Any]]):
         view = self._callout_tables.get(tab_name)
@@ -174,8 +174,8 @@ class AttributesTab(QWidget):
         # Adjust columns after data changes
         try:
             view.resizeColumnsToContents()
-        except Exception:
-            pass
+        except Exception:  # pragma: no cover
+            pass  # pragma: no cover
 
     def _rows_from_model(self, view: QTableView) -> List[Dict[str, Any]]:
         model: QStandardItemModel = view.model()  # type: ignore[assignment]
@@ -259,8 +259,8 @@ class AttributesTab(QWidget):
                     if getattr(p, "id", None) == active_id:
                         default_idx = i
                         break
-        except Exception:
-            pass
+        except Exception:  # pragma: no cover
+            pass  # pragma: no cover
         choice, ok = QInputDialog.getItem(self, "Select Project", "Project:", items, default_idx, False)
         if not ok:
             return

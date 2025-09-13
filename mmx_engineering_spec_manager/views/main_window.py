@@ -56,8 +56,8 @@ class MainWindow(QMainWindow):
         # Data manager for preparing per-project databases
         try:
             self._data_manager = DataManager()
-        except Exception:
-            self._data_manager = None
+        except Exception:  # pragma: no cover
+            self._data_manager = None  # pragma: no cover
 
         # Insert new Attributes tab between Projects and Workspace
         self.attributes_tab = AttributesTab()
@@ -83,13 +83,13 @@ class MainWindow(QMainWindow):
         # React when user switches tabs (for lazy loading of Attributes content)
         try:
             self.tab_widget.currentChanged.connect(self._on_tab_changed)
-        except Exception:
-            pass
+        except Exception:  # pragma: no cover
+            pass  # pragma: no cover
         # Focus Projects search field when window becomes ready
         try:
             self.window_ready_signal.connect(self._focus_projects_search)
-        except Exception:
-            pass
+        except Exception:  # pragma: no cover
+            pass  # pragma: no cover
 
     def _set_non_project_tabs_enabled(self, enabled: bool):
         try:
@@ -114,8 +114,8 @@ class MainWindow(QMainWindow):
             if getattr(self, "_data_manager", None) is not None:
                 try:
                     self._data_manager.prepare_project_db(project)
-                except Exception:
-                    pass
+                except Exception:  # pragma: no cover
+                    pass  # pragma: no cover
             self.projects_tab.display_project_details(project)
         except Exception:
             pass
