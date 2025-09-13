@@ -20,6 +20,8 @@ class ProjectsTab(QWidget):
         self.projects_table = QTableView()
         self.import_button = QPushButton("Import from Innergy")
         self.load_button = QPushButton("Load Project")
+        self.select_another_button = QPushButton("Select Another Project")
+        self.select_another_button.setVisible(False)
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Search number or name")
         self.projects_detail_view = ProjectsDetailView()
@@ -33,6 +35,7 @@ class ProjectsTab(QWidget):
         top_bar = QHBoxLayout()
         top_bar.addWidget(self.import_button)
         top_bar.addWidget(self.load_button)
+        top_bar.addWidget(self.select_another_button)
         top_bar.addStretch(1)
         top_bar.addWidget(self.search_input)
         layout.addLayout(top_bar)
@@ -54,6 +57,7 @@ class ProjectsTab(QWidget):
         self.projects_table.doubleClicked.connect(self.on_project_double_clicked)
         self.load_button.clicked.connect(self.on_load_button_clicked)
         self.search_input.textChanged.connect(self._on_search_text_changed)
+        self.select_another_button.clicked.connect(self.show_projects_list)
 
     def display_projects(self, projects):
         self.projects = projects
@@ -141,12 +145,55 @@ class ProjectsTab(QWidget):
 
     def display_project_details(self, project):
         self.current_project = project
-        # Swap visibility: show details, hide list/log
+        # Swap visibility: show details, hide list/log and hide list controls
         self.projects_detail_view.setVisible(True)
         self.projects_table.setVisible(False)
         self.log_view.setVisible(False)
+        # Hide list controls, show back/select button
+        try:
+            self.import_button.setVisible(False)
+            self.load_button.setVisible(False)
+            self.search_input.setVisible(False)
+            self.select_another_button.setVisible(True)
+        except Exception:
+            pass
         try:
             self.projects_detail_view.display_project(project)
         except Exception:
             # If detail view cannot render due to mock, ignore for test environment
             pass
+
+    def show_projects_list(self):
+        """
+        Hide the Projects Detail View and show the Projects List again.
+        Also restores the top bar controls visibility.
+        """
+        # Hide detail view
+        self.projects_detail_view.setVisible(False)
+        # Show the list view or log view depending on debug flag
+        if os.getenv("DEBUG_SHOW_INNERGY_RESPONSE") == "1":
+            try:
+                self.log_view.setVisible(True)
+            except Exception:
+                pass
+            # When showing log view, keep the table hidden
+            try:
+                self.projects_table.setVisible(False)
+            except Exception:
+                pass
+        else:
+            self.projects_table.setVisible(True)
+            try:
+                self.log_view.setVisible(False)
+            except Exception:
+                pass
+        # Restore top bar controls
+        try:
+            self.import_button.setVisible(True)
+            self.load_button.setVisible(True)
+            self.search_input.setVisible(True)
+            self.select_another_button.setVisible(False)
+        except Exception:
+            pass
+        # Clear current project context in the tab
+        self.current_project = None

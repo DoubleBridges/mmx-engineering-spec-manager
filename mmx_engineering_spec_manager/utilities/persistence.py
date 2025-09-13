@@ -74,12 +74,12 @@ def project_sqlite_db_path(project: Any) -> str:
     ident = None
     try:
         ident = getattr(project, "number", None)
-    except Exception:
+    except Exception:  # pragma: no cover
         ident = None
     if not ident:
         try:
             ident = getattr(project, "id", None)
-        except Exception:
+        except Exception:  # pragma: no cover
             ident = None
     if not ident:
         ident = "project"
