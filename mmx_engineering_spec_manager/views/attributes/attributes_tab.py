@@ -36,6 +36,7 @@ class AttributesTab(QWidget):
         self._rows: List[Dict[str, Any]] = []
         self._dm = None  # Lazy init to avoid heavy DB setup during tests until needed
         self._callout_tables: Dict[str, QTableView] = {}
+        self._active_project = None  # Currently active project object (set by MainWindow)
 
         # Existing generic table and Load button (kept for tests)
         self.table = QTableView()
@@ -121,6 +122,43 @@ class AttributesTab(QWidget):
                     super().setModelData(editor, model, index)
         self._uncat_delegate = TypeComboDelegate(self)
         self._callout_tables["Uncategorized"].setItemDelegateForColumn(0, self._uncat_delegate)
+
+    def set_active_project(self, project):
+        """Set the active project (from MainWindow)."""
+        self._active_project = project
+
+    def load_callouts_for_active_project(self):
+        """Load callouts for the active project from its per-project DB and populate tables."""
+        if self._dm is None:
+            try:
+                self._dm = DataManager()
+            except Exception:
+                return
+        if not getattr(self, "_active_project", None):
+            return
+        try:
+            pid = getattr(self._active_project, "id", None)
+            if pid is None:
+                return
+            grouped = self._dm.get_callouts_for_project(pid)
+            if not isinstance(grouped, dict):
+                return
+            # Populate each known tab
+            for tab_name, items in grouped.items():
+                rows = []
+                for d in items or []:
+                    # Accept dicts from DataManager
+                    if isinstance(d, dict):
+                        rows.append({
+                            "Type": d.get("Type", ""),
+                            "Name": d.get("Name", ""),
+                            "Tag": d.get("Tag", ""),
+                            "Description": d.get("Description", ""),
+                        })
+                self._populate_callout_table(tab_name, rows)
+        except Exception:
+            # Silently ignore in UI context
+            pass
 
     def _populate_callout_table(self, tab_name: str, rows: List[Dict[str, Any]]):
         view = self._callout_tables.get(tab_name)
@@ -212,7 +250,18 @@ class AttributesTab(QWidget):
         if not projects:
             return
         items = [f"{p.number or ''} - {p.name or ''} (ID {p.id})" for p in projects]
-        choice, ok = QInputDialog.getItem(self, "Select Project", "Project:", items, 0, False)
+        # Preselect the active project if available
+        default_idx = 0
+        try:
+            active_id = getattr(getattr(self, "_active_project", None), "id", None)
+            if active_id is not None:
+                for i, p in enumerate(projects):
+                    if getattr(p, "id", None) == active_id:
+                        default_idx = i
+                        break
+        except Exception:
+            pass
+        choice, ok = QInputDialog.getItem(self, "Select Project", "Project:", items, default_idx, False)
         if not ok:
             return
         sel_idx = items.index(choice)
