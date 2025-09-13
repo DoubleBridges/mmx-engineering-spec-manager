@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QComboBox,
     QStyledItemDelegate,
+    QHeaderView,
 )
 
 from mmx_engineering_spec_manager.utilities import kv_import
@@ -78,6 +79,11 @@ class AttributesTab(QWidget):
             items = [QStandardItem(str(r.get(k, ""))) for k in keys]
             model.appendRow(items)
         self.table.setModel(model)
+        # Autosize columns to contents for readability
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header.setStretchLastSection(True)
+        self.table.resizeColumnsToContents()
 
     def _init_callouts_ui(self):
         # Create per-category tables
@@ -87,6 +93,10 @@ class AttributesTab(QWidget):
             model = QStandardItemModel()
             model.setHorizontalHeaderLabels(headers)
             view.setModel(model)
+            # Autosize columns to their contents for better readability
+            header = view.horizontalHeader()
+            header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+            header.setStretchLastSection(True)
             self.callouts_tabs.addTab(view, tab_name)
             self._callout_tables[tab_name] = view
         # Add combo delegate for Type column in Uncategorized
@@ -123,6 +133,11 @@ class AttributesTab(QWidget):
             for it in items:
                 it.setEditable(True)
             model.appendRow(items)
+        # Adjust columns after data changes
+        try:
+            view.resizeColumnsToContents()
+        except Exception:
+            pass
 
     def _rows_from_model(self, view: QTableView) -> List[Dict[str, Any]]:
         model: QStandardItemModel = view.model()  # type: ignore[assignment]
