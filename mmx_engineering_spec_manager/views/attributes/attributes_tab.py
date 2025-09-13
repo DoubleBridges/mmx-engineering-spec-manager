@@ -152,16 +152,24 @@ class AttributesTab(QWidget):
         path, _ = QFileDialog.getOpenFileName(self, f"Open {file_type}", "", filt)
         if not path:
             return
-        # Parse and group
+        # Try parsing as callouts first
         dtos = callout_import.read_callouts(file_type, path)
-        grouped = callout_import.group_callouts(dtos)
-        # Populate tables
-        for tab_name, items in grouped.items():
-            rows = [
-                {"Type": d.type, "Name": d.name, "Tag": d.tag, "Description": d.description}
-                for d in items
-            ]
-            self._populate_callout_table(tab_name, rows)
+        if dtos:
+            grouped = callout_import.group_callouts(dtos)
+            # Populate callout tables
+            for tab_name, items in grouped.items():
+                rows = [
+                    {"Type": d.type, "Name": d.name, "Tag": d.tag, "Description": d.description}
+                    for d in items
+                ]
+                self._populate_callout_table(tab_name, rows)
+            return
+        # Fallback: load generically into the attributes table
+        rows = kv_import.read_any(path)
+        if not isinstance(rows, list):
+            rows = []
+        self._rows = rows
+        self._build_model(rows)
 
     def _on_save_callouts(self):
         # Lazy create DataManager only when saving

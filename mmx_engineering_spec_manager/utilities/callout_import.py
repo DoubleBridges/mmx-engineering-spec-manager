@@ -70,22 +70,73 @@ def parse_csv_callouts(path: str | Path) -> List[CalloutDTO]:
 
 
 def parse_json_callouts(path: str | Path) -> List[CalloutDTO]:
+    """
+    Parse callouts from JSON. Supports two structures:
+    - A top-level list of rows (each row is a list like [name, tag, description, ...]).
+    - A top-level object with key 'd' containing the list of rows, where header rows
+      (e.g., 'FINISHES', 'HARDWARE', 'SINKS', 'APPLIANCES') precede their data rows.
+
+    In the 'd' format, we infer the callout Type from the surrounding header section
+    when the tag-based categorization is ambiguous. Otherwise we categorize by tag
+    prefix (PL->Finish, HW->Hardware, SK->Sink, AP->Appliance, etc.).
+    """
     p = Path(path)
     text = p.read_text(encoding='utf-8')
     data = json.loads(text)
-    if not isinstance(data, list):
-        return []
+
     result: List[CalloutDTO] = []
-    for item in data:
-        if not isinstance(item, list) or len(item) < 3:
-            continue
-        a = (item[0] or "").strip() if isinstance(item[0], str) else str(item[0]).strip()
-        b = (item[1] or "").strip() if isinstance(item[1], str) else str(item[1]).strip()
-        c = (item[2] or "").strip() if isinstance(item[2], str) else str(item[2]).strip()
-        if not a or not b or not c:
-            continue
-        result.append(_mk_dto(a, b, c))
-    return result
+
+    def _append_row(a: str, b: str, c: str, section_type: str | None = None):
+        # Build DTO via tag categorization then override with section type if needed
+        dto = _mk_dto(a, b, c)
+        if section_type and dto.type == TYPE_UNCATEGORIZED:
+            dto.type = section_type  # type: ignore[misc]
+        result.append(dto)
+
+    # Case 1: dict with 'd' list and optional section headers
+    if isinstance(data, dict) and isinstance(data.get("d"), list):
+        headers_map = {
+            "FINISHES": TYPE_FINISH,
+            "HARDWARE": TYPE_HARDWARE,
+            "SINKS": TYPE_SINK,
+            "APPLIANCES": TYPE_APPLIANCE,
+        }
+        current_section: str | None = None
+        for item in data.get("d", []):
+            if not isinstance(item, list):
+                continue
+            # Header rows look like ["FINISHES", "", "", ...]
+            if item and isinstance(item[0], str):
+                key = item[0].strip().upper()
+                if key in headers_map:
+                    current_section = headers_map[key]
+                    continue
+            # Data rows must have at least 3 columns
+            if len(item) < 3:
+                continue
+            a = (item[0] or "").strip() if isinstance(item[0], str) else str(item[0]).strip()
+            b = (item[1] or "").strip() if isinstance(item[1], str) else str(item[1]).strip()
+            c = (item[2] or "").strip() if isinstance(item[2], str) else str(item[2]).strip()
+            if not a or not b or not c:
+                continue
+            _append_row(a, b, c, current_section)
+        return result
+
+    # Case 2: simple list of rows
+    if isinstance(data, list):
+        for item in data:
+            if not isinstance(item, list) or len(item) < 3:
+                continue
+            a = (item[0] or "").strip() if isinstance(item[0], str) else str(item[0]).strip()
+            b = (item[1] or "").strip() if isinstance(item[1], str) else str(item[1]).strip()
+            c = (item[2] or "").strip() if isinstance(item[2], str) else str(item[2]).strip()
+            if not a or not b or not c:
+                continue
+            _append_row(a, b, c)
+        return result
+
+    # Unknown structure
+    return []
 
 
 def group_callouts(dtos: Iterable[CalloutDTO]) -> dict:
