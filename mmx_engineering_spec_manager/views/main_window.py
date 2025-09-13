@@ -7,6 +7,7 @@ from .projects.projects_tab import ProjectsTab
 from .workspace.workspace_tab import WorkspaceTab
 from .attributes.attributes_tab import AttributesTab
 from PySide6.QtCore import QTimer
+from mmx_engineering_spec_manager.data_manager.manager import DataManager
 
 
 class MainWindow(QMainWindow):
@@ -51,6 +52,12 @@ class MainWindow(QMainWindow):
         self.projects_tab = ProjectsTab()
         self.projects_detail_view = self.projects_tab.projects_detail_view
         self.tab_widget.addTab(self.projects_tab, "Projects")
+        
+        # Data manager for preparing per-project databases
+        try:
+            self._data_manager = DataManager()
+        except Exception:
+            self._data_manager = None
 
         # Insert new Attributes tab between Projects and Workspace
         self.attributes_tab = AttributesTab()
@@ -73,6 +80,11 @@ class MainWindow(QMainWindow):
 
         # Connect project load events
         self.projects_tab.open_project_signal.connect(self._on_project_loaded)
+        # React when user switches tabs (for lazy loading of Attributes content)
+        try:
+            self.tab_widget.currentChanged.connect(self._on_tab_changed)
+        except Exception:
+            pass
         # Focus Projects search field when window becomes ready
         try:
             self.window_ready_signal.connect(self._focus_projects_search)
@@ -98,7 +110,21 @@ class MainWindow(QMainWindow):
         # Set current project, show details, and enable other tabs
         self.set_current_project(project)
         try:
+            # Create/open the project's dedicated SQLite DB
+            if getattr(self, "_data_manager", None) is not None:
+                try:
+                    self._data_manager.prepare_project_db(project)
+                except Exception:
+                    pass
             self.projects_tab.display_project_details(project)
+        except Exception:
+            pass
+        # Inform Attributes tab about the active project
+        try:
+            self.attributes_tab.set_active_project(project)
+            # If Attributes tab is already selected, load callouts now
+            if self.tab_widget.currentIndex() == self._idx_attributes:
+                self.attributes_tab.load_callouts_for_active_project()
         except Exception:
             pass
         self._set_non_project_tabs_enabled(True)
@@ -109,6 +135,15 @@ class MainWindow(QMainWindow):
             # Ensure Projects tab is selected then focus the search input
             self.tab_widget.setCurrentIndex(self._idx_projects)
             self.projects_tab.search_input.setFocus()
+        except Exception:
+            pass
+
+    def _on_tab_changed(self, index: int):
+        try:
+            if index == self._idx_attributes and self.current_project is not None:
+                # Ensure Attributes tab knows the current project and load callouts
+                self.attributes_tab.set_active_project(self.current_project)
+                self.attributes_tab.load_callouts_for_active_project()
         except Exception:
             pass
 
