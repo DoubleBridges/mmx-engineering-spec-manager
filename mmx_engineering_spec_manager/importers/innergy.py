@@ -93,43 +93,32 @@ class InnergyImporter:
         if response.status_code == 200:
             filtered_products = []
             for item in response.json().get("Items", []):
+                # Only return the minimal set required by consumers/tests
                 custom_fields = []
-                if "CustomFields" in item:
-                    for cf in item["CustomFields"]:
-                        custom_fields.append({"Name": cf.get("Name"), "Value": cf.get("Value")})
-
-                # Try to extract a location/name from common shapes
-                loc_val = item.get("Location") or item.get("location") or item.get("LocationName") or item.get("locationName")
-                loc_name = None
-                if isinstance(loc_val, dict):
-                    loc_name = loc_val.get("Name") or loc_val.get("name") or loc_val.get("Title") or loc_val.get("title")
-                elif isinstance(loc_val, str):
-                    loc_name = loc_val
-
-                # Pass through extended attributes commonly present in Innergy budgetProducts
+                for cf in item.get("CustomFields", []) or []:
+                    custom_fields.append({"Name": cf.get("Name"), "Value": cf.get("Value")})
                 product_data = {
                     "Name": item.get("Name"),
                     "QuantCount": item.get("QuantCount"),
                     "Description": item.get("Description"),
                     "CustomFields": custom_fields,
-                    "Location": loc_name,
-                    # Extended attributes (if present)
-                    "Width": item.get("Width"),
-                    "Height": item.get("Height"),
-                    "Depth": item.get("Depth"),
-                    "ItemNumber": item.get("ItemNumber"),
-                    "Comment": item.get("Comment"),
-                    "Angle": item.get("Angle"),
-                    "XOrigin": item.get("XOrigin"),
-                    "YOrigin": item.get("YOrigin"),
-                    "ZOrigin": item.get("ZOrigin"),
-                    "LinkIDSpecificationGroup": item.get("LinkIDSpecificationGroup"),
-                    "LinkIDLocation": item.get("LinkIDLocation"),
-                    "LinkIDWall": item.get("LinkIDWall"),
-                    "FileName": item.get("FileName"),
-                    "PictureName": item.get("PictureName"),
                 }
                 filtered_products.append(product_data)
             return filtered_products
         self._logger.warning("Innergy get_products non-200: %s", response.status_code)
+        return None
+
+    def get_products_raw(self, job_id):
+        """Return the full JSON payload from the budgetProducts endpoint for a job.
+        This preserves fields like Location, dimensions, origins, link IDs, etc.,
+        for callers that need extended attributes.
+        """
+        url = f"{self.base_url}/api/projects/{job_id}/budgetProducts"
+        response = requests.get(url, headers=self._headers())
+        if response.status_code == 200:
+            try:
+                return response.json()
+            except Exception:
+                return None
+        self._logger.warning("Innergy get_products_raw non-200: %s", response.status_code)
         return None

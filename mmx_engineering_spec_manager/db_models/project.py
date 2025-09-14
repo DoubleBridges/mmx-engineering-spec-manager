@@ -25,6 +25,7 @@ class Project(Base):
     hardware_callouts = relationship("HardwareCallout", back_populates="project")
     sink_callouts = relationship("SinkCallout", back_populates="project")
     appliance_callouts = relationship("ApplianceCallout", back_populates="project")
+    location_table_callouts = relationship("LocationTableCallout", back_populates="project")
 
     @property
     def specification_groups(self):

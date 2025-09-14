@@ -20,6 +20,7 @@ from mmx_engineering_spec_manager.db_models.sink_callout import SinkCallout
 from mmx_engineering_spec_manager.db_models.specification_group import SpecificationGroup
 from mmx_engineering_spec_manager.db_models.wall import Wall
 from mmx_engineering_spec_manager.db_models.wizard_prompts import WizardPrompts
+from mmx_engineering_spec_manager.db_models.location_table_callout import LocationTableCallout
 from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
 from mmx_engineering_spec_manager.mappers.innergy_mapper import map_project_payload_to_dto, map_products_payload_to_dtos
 from mmx_engineering_spec_manager.utilities.persistence import create_engine_and_sessionmaker, project_sqlite_db_path, create_engine_and_sessionmaker_for_sqlite_path
@@ -614,7 +615,19 @@ class DataManager:
             return []
         try:
             importer = InnergyImporter()
+            # Fetch filtered products for essential fields and DTO mapping
             products_payload = importer.get_products(project_number) or []
+            # Also fetch raw payload to extract location and extended attributes
+            raw_payload = None
+            try:
+                raw_payload = importer.get_products_raw(project_number)
+            except Exception:
+                raw_payload = None
+            raw_items = []
+            if isinstance(raw_payload, dict) and isinstance(raw_payload.get("Items"), list):
+                raw_items = raw_payload.get("Items")
+            elif isinstance(raw_payload, list):
+                raw_items = raw_payload
             pdtos = map_products_payload_to_dtos(products_payload)
             out = []
             # Attempt to align locations and extended attributes from raw payload with mapped DTOs by index
@@ -630,7 +643,9 @@ class DataManager:
                 link_sg = link_loc = link_wall = None
                 file_name = picture_name = None
                 try:
-                    src = products_payload[idx] if isinstance(products_payload, list) and idx < len(products_payload) else None
+                    src = raw_items[idx] if isinstance(raw_items, list) and idx < len(raw_items) else (
+                        products_payload[idx] if isinstance(products_payload, list) and idx < len(products_payload) else None
+                    )
                     if isinstance(src, dict):
                         # Location can be str or dict
                         loc_val = src.get("Location") or src.get("location") or src.get("LocationName") or src.get("locationName")
@@ -889,5 +904,133 @@ class DataManager:
         finally:
             try:
                 sess2.close()
+            except Exception:
+                pass
+
+
+    def get_location_tables_for_project(self, project_id: int, session=None) -> dict:
+        """
+        Load location table callouts for a project from its per-project SQLite DB.
+        Returns a mapping: { location_name: [ {"Type","Tag","Description"}, ... ] }
+        Unknown or missing location names are grouped under "" (empty string).
+        """
+        # Prefer provided session
+        if session is not None:
+            db_session = session
+        else:
+            # Open per-project DB
+            try:
+                tmp = type("_Tmp", (), {})()
+                setattr(tmp, "id", project_id)
+                db_path = self.prepare_project_db(tmp)
+                engine2, Session2 = create_engine_and_sessionmaker_for_sqlite_path(db_path)
+                db_session = Session2()
+            except Exception:
+                db_session = self.session
+        try:
+            rows = db_session.query(LocationTableCallout).filter_by(project_id=project_id).all()
+            out: dict[str, list[dict]] = {}
+            for obj in rows or []:
+                try:
+                    loc_name = None
+                    try:
+                        loc = getattr(obj, "location", None)
+                        if loc is not None:
+                            loc_name = getattr(loc, "name", None)
+                    except Exception:
+                        loc_name = None
+                    key = (loc_name or "").strip()
+                    out.setdefault(key, []).append({
+                        "Type": getattr(obj, "type", "") or "",
+                        "Tag": getattr(obj, "tag", "") or "",
+                        "Description": getattr(obj, "description", "") or "",
+                    })
+                except Exception:
+                    continue
+            return out
+        finally:
+            try:
+                if 'Session2' in locals() and db_session is not (session if session is not None else self.session):
+                    db_session.close()
+            except Exception:
+                pass
+
+    def replace_location_tables_for_project(self, project_id: int, data: dict | None, session=None) -> bool:
+        """
+        Replace all location table callouts for a project in its per-project DB.
+        `data` must be a mapping of location_name -> list of dicts with keys Type, Tag, Description.
+        Locations are upserted by name when needed.
+        """
+        if data is None:
+            data = {}
+        # Prefer provided session
+        created_session = False
+        if session is not None:
+            db_session = session
+        else:
+            try:
+                tmp = type("_Tmp", (), {})()
+                setattr(tmp, "id", project_id)
+                db_path = self.prepare_project_db(tmp)
+                engine2, Session2 = create_engine_and_sessionmaker_for_sqlite_path(db_path)
+                db_session = Session2()
+                created_session = True
+            except Exception:
+                db_session = self.session
+        try:
+            # Preload locations by name
+            locs = db_session.query(Location).filter_by(project_id=project_id).all()
+            name_to_loc = { (getattr(l, 'name', '') or '').strip(): l for l in locs }
+            # Clear existing rows
+            db_session.query(LocationTableCallout).filter_by(project_id=project_id).delete(synchronize_session=False)
+            # Insert new ones
+            for loc_name, rows in (data or {}).items():
+                if loc_name is None:
+                    loc_key = ""
+                else:
+                    loc_key = str(loc_name).strip()
+                loc_obj = name_to_loc.get(loc_key)
+                if loc_obj is None:
+                    # Create missing location row
+                    loc_obj = Location(name=loc_key, project_id=project_id)
+                    db_session.add(loc_obj)
+                    db_session.flush()
+                    name_to_loc[loc_key] = loc_obj
+                for r in rows or []:
+                    try:
+                        t = (r.get("Type") if isinstance(r, dict) else getattr(r, 'type', None)) or ""
+                        tag = (r.get("Tag") if isinstance(r, dict) else getattr(r, 'tag', None)) or ""
+                        desc = (r.get("Description") if isinstance(r, dict) else getattr(r, 'description', None))
+                        obj = LocationTableCallout(project_id=project_id, location_id=getattr(loc_obj, 'id', None))
+                        # Map fields
+                        setattr(obj, 'type', str(t) if t is not None else "")
+                        setattr(obj, 'tag', str(tag) if tag is not None else "")
+                        setattr(obj, 'description', str(desc) if desc is not None else None)
+                        # Optional material from dict
+                        try:
+                            mat = r.get("Name") if isinstance(r, dict) else getattr(r, 'name', None)
+                            if mat is not None:
+                                setattr(obj, 'material', str(mat))
+                        except Exception:
+                            pass
+                        db_session.add(obj)
+                    except Exception:
+                        continue
+            db_session.commit()
+            return True
+        except Exception as e:  # pragma: no cover
+            try:
+                db_session.rollback()
+            except Exception:
+                pass
+            try:
+                self._logger.warning("replace_location_tables_for_project failed: %s", e)
+            except Exception:
+                pass
+            return False
+        finally:
+            try:
+                if created_session:
+                    db_session.close()
             except Exception:
                 pass
