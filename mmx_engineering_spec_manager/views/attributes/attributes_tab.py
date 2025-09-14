@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QTableView,
+    QListView,
     QPushButton,
     QTabWidget,
     QInputDialog,
@@ -37,6 +38,10 @@ class AttributesTab(QWidget):
         self._dm = None  # Lazy init to avoid heavy DB setup during tests until needed
         self._callout_tables: Dict[str, QTableView] = {}
         self._active_project = None  # Currently active project object (set by MainWindow)
+        # Location tables state
+        self._tag_to_desc: Dict[str, str] = {}
+        self._location_tables_by_name: Dict[str, List[Dict[str, Any]]] = {}
+        self._current_location_name: str | None = None
 
         # Existing generic table and Load button (kept for tests)
         self.table = QTableView()
@@ -53,6 +58,9 @@ class AttributesTab(QWidget):
         self.callouts_tabs = QTabWidget()
         self._init_callouts_ui()
 
+        # Bottom location tables UI (Locations list + Location Table editor)
+        self._init_location_tables_ui()
+
         # Layout
         top_bar = QHBoxLayout()
         top_bar.addWidget(self.load_button)
@@ -62,6 +70,7 @@ class AttributesTab(QWidget):
         layout = QVBoxLayout()
         layout.addLayout(top_bar)
         layout.addWidget(self.callouts_tabs)
+        layout.addLayout(self._location_bar)
         layout.addWidget(self.table)
         self.setLayout(layout)
 
@@ -156,6 +165,9 @@ class AttributesTab(QWidget):
                             "Description": d.get("Description", ""),
                         })
                 self._populate_callout_table(tab_name, rows)
+            # Rebuild tag index and load locations/location-tables after callouts are shown
+            self._rebuild_tag_index()
+            self.load_locations_and_location_tables_for_active_project()
         except Exception:  # pragma: no cover
             # Silently ignore in UI context
             pass  # pragma: no cover
@@ -176,6 +188,11 @@ class AttributesTab(QWidget):
             view.resizeColumnsToContents()
         except Exception:  # pragma: no cover
             pass  # pragma: no cover
+        # Update tag index so Location Table can autofill descriptions by tag
+        try:
+            self._rebuild_tag_index()
+        except Exception:
+            pass
 
     def _rows_from_model(self, view: QTableView) -> List[Dict[str, Any]]:
         model: QStandardItemModel = view.model()  # type: ignore[assignment]
@@ -269,6 +286,13 @@ class AttributesTab(QWidget):
         # Group and persist
         grouped = callout_import.group_callouts(dtos)
         self._dm.replace_callouts_for_project(project.id, grouped)
+        # Also persist Location Tables for this project
+        try:
+            lt_data = self._gather_location_tables_data()
+            self._dm.replace_location_tables_for_project(project.id, lt_data)
+        except Exception:
+            # Non-fatal in UI context
+            pass
 
     def load_from_path(self, path: str):
         rows = kv_import.read_any(path)
@@ -279,3 +303,282 @@ class AttributesTab(QWidget):
 
     def current_rows(self) -> List[Dict[str, Any]]:
         return list(self._rows)
+
+
+    def _init_location_tables_ui(self):
+        """Initialize the bottom split UI with Locations list (left) and Location Table (right)."""
+        self._location_bar = QHBoxLayout()
+        # Locations list
+        self.locations_list = QListView()
+        self._locations_model = QStandardItemModel()
+        self.locations_list.setModel(self._locations_model)
+        self._location_bar.addWidget(self.locations_list, 1)
+        # Right side: Location table editor (Type, Tag, Description) with row controls
+        right_box = QVBoxLayout()
+        self.location_table_view = QTableView()
+        self._location_table_model = QStandardItemModel()
+        self._location_table_model.setHorizontalHeaderLabels(["Type", "Tag", "Description"])
+        self.location_table_view.setModel(self._location_table_model)
+        header = self.location_table_view.horizontalHeader()
+        try:
+            # Column sizing: Type autosizes to contents, Tag autosizes, Description stretches to fill remaining space
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+            header.setStretchLastSection(False)
+        except Exception:
+            pass
+        right_box.addWidget(self.location_table_view, 1)
+        # Buttons bar under the table
+        buttons_bar = QHBoxLayout()
+        self.btn_add_row = QPushButton("Add Row")
+        self.btn_delete_row = QPushButton("Delete Row")
+        self.btn_move_up = QPushButton("Move Up")
+        self.btn_move_down = QPushButton("Move Down")
+        buttons_bar.addWidget(self.btn_add_row)
+        buttons_bar.addWidget(self.btn_delete_row)
+        buttons_bar.addWidget(self.btn_move_up)
+        buttons_bar.addWidget(self.btn_move_down)
+        buttons_bar.addStretch(1)
+        right_box.addLayout(buttons_bar)
+        # Add right side box to the split
+        self._location_bar.addLayout(right_box, 3)
+        # Connect selection and edits
+        try:
+            self.locations_list.selectionModel().selectionChanged.connect(self._on_location_selected)  # type: ignore[arg-type]
+        except Exception:
+            pass
+        try:
+            self._location_table_model.itemChanged.connect(self._on_location_table_item_changed)
+        except Exception:
+            pass
+        # Connect buttons
+        try:
+            self.btn_add_row.clicked.connect(self._add_location_table_row)
+            self.btn_delete_row.clicked.connect(self._delete_location_table_row)
+            self.btn_move_up.clicked.connect(self._move_location_table_row_up)
+            self.btn_move_down.clicked.connect(self._move_location_table_row_down)
+        except Exception:
+            pass
+
+    def _rebuild_tag_index(self):
+        """Build a mapping from Tag -> Description using all callouts tables above."""
+        tag_to_desc: Dict[str, str] = {}
+        for view in self._callout_tables.values():
+            model: QStandardItemModel = view.model()  # type: ignore[assignment]
+            for i in range(model.rowCount()):
+                tag = model.item(i, 2).text() if model.item(i, 2) else ""
+                desc = model.item(i, 3).text() if model.item(i, 3) else ""
+                if tag:
+                    tag_to_desc.setdefault(tag, desc)
+        self._tag_to_desc = tag_to_desc
+
+    def _on_location_selected(self, selected, deselected):  # pragma: no cover - UI glue
+        try:
+            # Save current table rows under previous selection
+            self._capture_location_table_rows()
+            # Get newly selected location name
+            idxs = self.locations_list.selectedIndexes()
+            if not idxs:
+                self._current_location_name = None
+                self._populate_location_table_from_rows([])
+                return
+            idx = idxs[0]
+            name = idx.data() or ""
+            self._show_location_table_for(str(name))
+        except Exception:
+            pass
+
+    def _capture_location_table_rows(self):
+        """Read rows from the right table and store them under the currently selected location name."""
+        name = self._current_location_name
+        if not name:
+            return
+        rows: List[Dict[str, Any]] = []
+        for i in range(self._location_table_model.rowCount()):
+            t = self._location_table_model.item(i, 0).text() if self._location_table_model.item(i, 0) else ""
+            tag = self._location_table_model.item(i, 1).text() if self._location_table_model.item(i, 1) else ""
+            desc = self._location_table_model.item(i, 2).text() if self._location_table_model.item(i, 2) else ""
+            if t or tag or desc:
+                rows.append({"Type": t, "Tag": tag, "Description": desc})
+        self._location_tables_by_name[name] = rows
+
+    def _show_location_table_for(self, name: str):
+        self._current_location_name = name
+        rows = self._location_tables_by_name.get(name, [])
+        self._populate_location_table_from_rows(rows)
+
+    def _populate_location_table_from_rows(self, rows: List[Dict[str, Any]]):
+        m = self._location_table_model
+        m.blockSignals(True)
+        try:
+            m.removeRows(0, m.rowCount())
+            if rows and len(rows) > 0:
+                for r in rows:
+                    items = [QStandardItem(str(r.get(k, ""))) for k in ("Type", "Tag", "Description")]
+                    for it in items:
+                        it.setEditable(True)
+                    m.appendRow(items)
+            else:
+                # Default to 5 blank editable rows when there is no data
+                for _ in range(5):
+                    items = [QStandardItem(""), QStandardItem(""), QStandardItem("")]
+                    for it in items:
+                        it.setEditable(True)
+                    m.appendRow(items)
+        finally:
+            m.blockSignals(False)
+        try:
+            self.location_table_view.resizeColumnsToContents()
+        except Exception:
+            pass
+
+    def _on_location_table_item_changed(self, item: QStandardItem):  # pragma: no cover - UI glue
+        try:
+            if item.column() == 1:  # Tag column
+                tag = item.text()
+                if tag and self._tag_to_desc.get(tag):
+                    # If Description empty, auto-fill
+                    i = item.row()
+                    desc_item = self._location_table_model.item(i, 2)
+                    if desc_item is None:
+                        desc_item = QStandardItem("")
+                        self._location_table_model.setItem(i, 2, desc_item)
+                    if not desc_item.text():
+                        desc_item.setText(self._tag_to_desc[tag])
+        except Exception:
+            pass
+
+    def _gather_location_tables_data(self) -> Dict[str, List[Dict[str, Any]]]:
+        # Capture current edits
+        self._capture_location_table_rows()
+        # Return a shallow copy to avoid accidental external modifications
+        out: Dict[str, List[Dict[str, Any]]] = {}
+        for name, rows in (self._location_tables_by_name or {}).items():
+            # Filter out empty rows
+            filt = []
+            for r in rows or []:
+                if any([(r.get("Type") or ""), (r.get("Tag") or ""), (r.get("Description") or "")]):
+                    filt.append({
+                        "Type": (r.get("Type") or ""),
+                        "Tag": (r.get("Tag") or ""),
+                        "Description": (r.get("Description") or ""),
+                    })
+            out[name] = filt
+        return out
+
+    def load_locations_and_location_tables_for_active_project(self):
+        """Load Locations list and any existing location tables from the active project's DB."""
+        if self._dm is None:
+            try:
+                self._dm = DataManager()
+            except Exception:
+                return
+        pid = getattr(getattr(self, "_active_project", None), "id", None)
+        if pid is None:
+            return
+        # Build locations list from per-project DB
+        names: List[str] = []
+        try:
+            pr = self._dm.get_full_project_from_project_db(pid)
+            if pr is not None:
+                for loc in getattr(pr, "locations", []) or []:
+                    try:
+                        nm = getattr(loc, "name", None)
+                        if nm:
+                            names.append(str(nm))
+                    except Exception:
+                        continue
+        except Exception:
+            names = []
+        self._locations_model.removeRows(0, self._locations_model.rowCount())
+        for nm in sorted(set(names), key=lambda s: s.lower()):
+            self._locations_model.appendRow(QStandardItem(nm))
+        # Load existing location tables
+        mapping = {}
+        try:
+            mapping = self._dm.get_location_tables_for_project(pid) or {}
+        except Exception:
+            mapping = {}
+        self._location_tables_by_name = {str(k): (v or []) for k, v in mapping.items()}
+        # Select first location if available
+        try:
+            if self._locations_model.rowCount() > 0:
+                index = self._locations_model.index(0, 0)
+                self.locations_list.setCurrentIndex(index)
+                self._show_location_table_for(self._locations_model.item(0, 0).text())
+            else:
+                self._current_location_name = None
+                self._populate_location_table_from_rows([])
+        except Exception:
+            pass
+
+    # ----- Location Table row controls -----
+    def _add_location_table_row(self):  # pragma: no cover - UI glue
+        try:
+            items = [QStandardItem(""), QStandardItem(""), QStandardItem("")]
+            for it in items:
+                it.setEditable(True)
+            self._location_table_model.appendRow(items)
+            # Select the new row
+            r = self._location_table_model.rowCount() - 1
+            idx = self._location_table_model.index(r, 0)
+            try:
+                self.location_table_view.setCurrentIndex(idx)
+            except Exception:
+                pass
+            try:
+                self.location_table_view.resizeColumnsToContents()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _delete_location_table_row(self):  # pragma: no cover - UI glue
+        try:
+            idx = self.location_table_view.currentIndex()
+            if not idx.isValid():
+                return
+            self._location_table_model.removeRow(idx.row())
+            try:
+                self.location_table_view.resizeColumnsToContents()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _move_location_table_row_up(self):  # pragma: no cover - UI glue
+        try:
+            idx = self.location_table_view.currentIndex()
+            if not idx.isValid():
+                return
+            row = idx.row()
+            if row <= 0:
+                return
+            items = self._location_table_model.takeRow(row)
+            self._location_table_model.insertRow(row - 1, items)
+            try:
+                new_idx = self._location_table_model.index(row - 1, idx.column())
+                self.location_table_view.setCurrentIndex(new_idx)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _move_location_table_row_down(self):  # pragma: no cover - UI glue
+        try:
+            idx = self.location_table_view.currentIndex()
+            if not idx.isValid():
+                return
+            row = idx.row()
+            if row >= self._location_table_model.rowCount() - 1:
+                return
+            items = self._location_table_model.takeRow(row)
+            self._location_table_model.insertRow(row + 1, items)
+            try:
+                new_idx = self._location_table_model.index(row + 1, idx.column())
+                self.location_table_view.setCurrentIndex(new_idx)
+            except Exception:
+                pass
+        except Exception:
+            pass

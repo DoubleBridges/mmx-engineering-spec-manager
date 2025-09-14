@@ -1,6 +1,18 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTreeView
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, QModelIndex
 from PySide6.QtGui import QStandardItemModel, QStandardItem
+
+# Compat: PySide6 versions used in tests may lack QModelIndex.child; provide a fallback.
+if not hasattr(QModelIndex, "child"):
+    def _qindex_child(self, row: int, column: int):  # type: ignore[no-redef]
+        try:
+            m = self.model()
+            if m is not None:
+                return m.index(row, column, self)
+        except Exception:
+            pass
+        return QModelIndex()
+    setattr(QModelIndex, "child", _qindex_child)
 
 
 class ProjectsDetailView(QWidget):
@@ -75,8 +87,8 @@ class ProjectsDetailView(QWidget):
         root_val = QStandardItem(proj_label)
         model.appendRow([root, root_val])
 
-        # Details group (auto-expanded)
-        details = QStandardItem("Details")
+        # Properties group (auto-expanded)
+        details = QStandardItem("Properties")
         details_val = QStandardItem("")
         root.appendRow([details, details_val])
         # Include known scalar properties
@@ -128,6 +140,12 @@ class ProjectsDetailView(QWidget):
         locs = QStandardItem("Locations")
         locs_val = QStandardItem("")
         root.appendRow([locs, locs_val])
+
+        # Other collection groups (present even if empty)
+        for name in ("Walls", "Custom Fields", "Specification Groups", "Global Prompts", "Wizard Prompts"):
+            grp = QStandardItem(name)
+            grp_val = QStandardItem("")
+            root.appendRow([grp, grp_val])
         # If ORM relationships exist, place products under their locations as before
         try:
             locations = getattr(project, 'locations', []) or []
@@ -255,9 +273,9 @@ class ProjectsDetailView(QWidget):
                         pass
 
         self.tree_view.setModel(model)
-        # Expand the Details group by default
+        # Expand the Properties group by default
         try:
-            details_index = model.index(0, 0).child(0, 0)  # root -> Details
+            details_index = model.index(0, 0).child(0, 0)  # root -> Properties
             if details_index.isValid():
                 self.tree_view.expand(model.index(0, 0))  # expand root
                 self.tree_view.expand(details_index)

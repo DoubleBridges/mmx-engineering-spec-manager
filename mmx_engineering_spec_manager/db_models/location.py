@@ -16,3 +16,4 @@ class Location(Base):
     project = relationship("Project", back_populates="locations")
     products = relationship("Product", back_populates="location")
     walls = relationship("Wall", back_populates="location")
+    location_table_callouts = relationship("LocationTableCallout", back_populates="location")
