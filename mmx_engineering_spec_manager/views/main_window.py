@@ -1,3 +1,4 @@
+import os
 from PySide6.QtCore import Signal, QTimer, Qt, QCoreApplication
 from PySide6.QtGui import QCloseEvent, QAction
 from PySide6.QtWidgets import (QMainWindow, QTabWidget, QProgressDialog, QMessageBox)
@@ -8,6 +9,7 @@ from .workspace.workspace_tab import WorkspaceTab
 from .attributes.attributes_tab import AttributesTab
 from mmx_engineering_spec_manager.data_manager.manager import DataManager
 from mmx_engineering_spec_manager.utilities.settings import get_settings
+from mmx_engineering_spec_manager.utilities.persistence import project_sqlite_db_path
 
 
 class MainWindow(QMainWindow):
@@ -117,73 +119,94 @@ class MainWindow(QMainWindow):
         # Set current project, show details, and enable other tabs
         self.set_current_project(project)
         try:
-            # Create/open the project's dedicated SQLite DB
+            project_to_show = project
             if getattr(self, "_data_manager", None) is not None:
+                # Determine per-project DB path BEFORE preparing, so we can detect prior existence
+                try:
+                    db_path = project_sqlite_db_path(project)
+                except Exception:
+                    db_path = None
+                existed_already = bool(db_path and os.path.exists(db_path))
+                # Ensure the project's dedicated SQLite DB and schema exists
                 try:
                     self._data_manager.prepare_project_db(project)
                 except Exception:  # pragma: no cover
                     pass  # pragma: no cover
-            # Attempt to ingest live project details by project number into the per-project DB,
-            # then load the enriched project back for display. Falls back to the original object.
-            project_to_show = project
-            try:
-                if getattr(self, "_data_manager", None) is not None:
-                    num = getattr(project, "number", None)
-                    if num:
-                        # Show a progress dialog during the byId API ingestion when API key is configured
-                        success = None
-                        error_text = None
-                        try:
-                            settings = get_settings()
-                        except Exception:
-                            settings = None
-                        has_api_key = bool(getattr(settings, "innergy_api_key", None))
-                        dlg = None
-                        try:
-                            if has_api_key:
-                                dlg = QProgressDialog("Loading project details from Innergy...", "", 0, 0, self)
-                                try:
-                                    dlg.setCancelButton(None)
-                                except Exception:
-                                    pass
-                                dlg.setWindowModality(Qt.WindowModal)
-                                dlg.setAutoClose(True)
-                                dlg.setMinimumDuration(0)
-                                dlg.show()
-                                try:
-                                    QCoreApplication.processEvents()
-                                except Exception:
-                                    pass
-                            # Perform ingestion (blocking)
+                num = getattr(project, "number", None)
+                pid = getattr(project, "id", None)
+                # If a DB file existed already, prefer loading from it and SKIP any API calls
+                if existed_already and pid is not None:
+                    try:
+                        enriched = self._data_manager.get_full_project_from_project_db(pid)
+                        if enriched is not None:
+                            project_to_show = enriched
+                            # Show details without attempting ingestion
+                            self.projects_tab.display_project_details(project_to_show)
+                            # Inform Attributes about active project
                             try:
-                                success = self._data_manager.ingest_project_details_to_project_db(str(num))
-                            except Exception as e:
-                                error_text = str(e)
-                                success = False
-                        finally:
-                            try:
-                                if dlg is not None:
-                                    dlg.close()
+                                self.attributes_tab.set_active_project(project)
+                                if self.tab_widget.currentIndex() == self._idx_attributes:
+                                    self.attributes_tab.load_callouts_for_active_project()
                             except Exception:
                                 pass
-                        # If API key was present and ingestion failed, surface an error
-                        if has_api_key and not success:
+                            self._set_non_project_tabs_enabled(True)
+                            return
+                    except Exception:
+                        # If load fails, fall back to the ingestion path below
+                        pass
+                # Otherwise, fall back to ingestion path (only if number is present)
+                if num:
+                    success = None
+                    error_text = None
+                    try:
+                        settings = get_settings()
+                    except Exception:
+                        settings = None
+                    has_api_key = bool(getattr(settings, "innergy_api_key", None))
+                    dlg = None
+                    try:
+                        if has_api_key:
+                            dlg = QProgressDialog("Loading project details from Innergy...", "", 0, 0, self)
                             try:
-                                msg = f"Failed to load project details from Innergy for project {num}."
-                                if error_text:
-                                    msg += f"\nDetails: {error_text}"
-                                QMessageBox.critical(self, "Innergy Load Failed", msg)
+                                dlg.setCancelButton(None)
                             except Exception:
                                 pass
-                        # Try to load enriched project from per-project DB regardless
+                            dlg.setWindowModality(Qt.WindowModal)
+                            dlg.setAutoClose(True)
+                            dlg.setMinimumDuration(0)
+                            dlg.show()
+                            try:
+                                QCoreApplication.processEvents()
+                            except Exception:
+                                pass
+                        # Perform ingestion (blocking)
                         try:
-                            enriched = self._data_manager.get_full_project_from_project_db(getattr(project, "id", None))
-                            if enriched is not None:
-                                project_to_show = enriched
+                            success = self._data_manager.ingest_project_details_to_project_db(str(num))
+                        except Exception as e:
+                            error_text = str(e)
+                            success = False
+                    finally:
+                        try:
+                            if dlg is not None:
+                                dlg.close()
                         except Exception:
                             pass
-            except Exception:
-                pass
+                    # If API key was present and ingestion failed, surface an error
+                    if has_api_key and not success:
+                        try:
+                            msg = f"Failed to load project details from Innergy for project {num}."
+                            if error_text:
+                                msg += f"\nDetails: {error_text}"
+                            QMessageBox.critical(self, "Innergy Load Failed", msg)
+                        except Exception:
+                            pass
+                    # Try to load enriched project from per-project DB regardless
+                    try:
+                        enriched = self._data_manager.get_full_project_from_project_db(pid)
+                        if enriched is not None:
+                            project_to_show = enriched
+                    except Exception:
+                        pass
             self.projects_tab.display_project_details(project_to_show)
         except Exception:
             pass
