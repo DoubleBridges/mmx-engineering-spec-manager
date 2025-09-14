@@ -98,11 +98,36 @@ class InnergyImporter:
                     for cf in item["CustomFields"]:
                         custom_fields.append({"Name": cf.get("Name"), "Value": cf.get("Value")})
 
+                # Try to extract a location/name from common shapes
+                loc_val = item.get("Location") or item.get("location") or item.get("LocationName") or item.get("locationName")
+                loc_name = None
+                if isinstance(loc_val, dict):
+                    loc_name = loc_val.get("Name") or loc_val.get("name") or loc_val.get("Title") or loc_val.get("title")
+                elif isinstance(loc_val, str):
+                    loc_name = loc_val
+
+                # Pass through extended attributes commonly present in Innergy budgetProducts
                 product_data = {
                     "Name": item.get("Name"),
                     "QuantCount": item.get("QuantCount"),
                     "Description": item.get("Description"),
-                    "CustomFields": custom_fields
+                    "CustomFields": custom_fields,
+                    "Location": loc_name,
+                    # Extended attributes (if present)
+                    "Width": item.get("Width"),
+                    "Height": item.get("Height"),
+                    "Depth": item.get("Depth"),
+                    "ItemNumber": item.get("ItemNumber"),
+                    "Comment": item.get("Comment"),
+                    "Angle": item.get("Angle"),
+                    "XOrigin": item.get("XOrigin"),
+                    "YOrigin": item.get("YOrigin"),
+                    "ZOrigin": item.get("ZOrigin"),
+                    "LinkIDSpecificationGroup": item.get("LinkIDSpecificationGroup"),
+                    "LinkIDLocation": item.get("LinkIDLocation"),
+                    "LinkIDWall": item.get("LinkIDWall"),
+                    "FileName": item.get("FileName"),
+                    "PictureName": item.get("PictureName"),
                 }
                 filtered_products.append(product_data)
             return filtered_products

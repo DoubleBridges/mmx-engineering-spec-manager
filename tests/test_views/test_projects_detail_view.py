@@ -1,8 +1,17 @@
 import PySide6
 import pytest
-from PySide6.QtWidgets import QFormLayout, QTabWidget, QLineEdit, QPushButton
+from PySide6.QtWidgets import QTreeView
+from PySide6.QtGui import QStandardItemModel
 
 from mmx_engineering_spec_manager.views.projects.projects_detail_view import ProjectsDetailView
+
+
+def _find_child_by_text(parent_item, text):
+    for r in range(parent_item.rowCount()):
+        child = parent_item.child(r, 0)
+        if child and child.text() == text:
+            return child
+    return None
 
 
 @pytest.fixture
@@ -33,93 +42,84 @@ def mock_project_data():
         wizard_prompts=["mock_wp"]
     )
 
-def test_projects_detail_view_has_form_and_tabs(qtbot):
+def test_projects_detail_view_has_tree_view(qtbot):
     """
-    Test that the ProjectsDetailView has a QFormLayout and a QTabWidget.
+    ProjectsDetailView should present a QTreeView-based layout now.
     """
-    projects_detail_view = ProjectsDetailView()
-    qtbot.addWidget(projects_detail_view)
+    view = ProjectsDetailView()
+    qtbot.addWidget(view)
 
-    # Assert that a QFormLayout exists
-    form_layout = projects_detail_view.findChild(QFormLayout)
-    assert form_layout is not None
-
-    # Assert that a QTabWidget exists
-    tab_widget = projects_detail_view.findChild(QTabWidget)
-    assert tab_widget is not None
+    tree = view.findChild(QTreeView)
+    assert tree is not None
 
 def test_projects_detail_view_displays_project_data(qtbot, mock_project_data):
     """
-    Test that the ProjectsDetailView correctly displays project data in the form layout.
+    Test that the ProjectsDetailView correctly displays project data in the tree view under Properties.
     """
 
-    projects_detail_view = ProjectsDetailView()
-    qtbot.addWidget(projects_detail_view)
+    view = ProjectsDetailView()
+    qtbot.addWidget(view)
 
-    projects_detail_view.display_project(mock_project_data)
+    view.display_project(mock_project_data)
 
-    # Assert that the QFormLayout has the correct number of rows
-    form_layout = projects_detail_view.form_layout
-    assert form_layout.rowCount() == 3
+    model = view.tree_view.model()
+    assert isinstance(model, QStandardItemModel)
 
-    # Assert that the labels and values are correct
-    assert form_layout.itemAt(0, QFormLayout.ItemRole.LabelRole).widget().text() == "Number:"
-    assert form_layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget().text() == "101"
+    root = model.item(0, 0)
+    assert root.text() == "Project"
 
-    assert form_layout.itemAt(1, QFormLayout.ItemRole.LabelRole).widget().text() == "Name:"
-    assert form_layout.itemAt(1, QFormLayout.ItemRole.FieldRole).widget().text() == "Test Project"
+    props = _find_child_by_text(root, "Properties")
+    assert props is not None
 
-    assert form_layout.itemAt(2, QFormLayout.ItemRole.LabelRole).widget().text() == "Job Description:"
-    assert form_layout.itemAt(2, QFormLayout.ItemRole.FieldRole).widget().text() == "A complete project example."
+    # Build a dict of property -> value from the Properties node children
+    kv = {}
+    for r in range(props.rowCount()):
+        k = props.child(r, 0).text()
+        v = props.child(r, 1).text()
+        kv[k] = v
+
+    assert kv.get("Number") == "101"
+    assert kv.get("Name") == "Test Project"
+    assert kv.get("Job Description") == "A complete project example."
 
 def test_projects_detail_view_displays_project_collections(qtbot, mock_project_data):
     """
-    Test that the ProjectsDetailView correctly displays project collections in the tab widget.
+    The tree should include collection groups as children of the root: Locations, Walls, Custom Fields,
+    Specification Groups, Global Prompts, Wizard Prompts (when present). Products are nested under Locations.
     """
 
-    projects_detail_view = ProjectsDetailView()
-    qtbot.addWidget(projects_detail_view)
+    view = ProjectsDetailView()
+    qtbot.addWidget(view)
 
-    projects_detail_view.display_project(mock_project_data)
+    view.display_project(mock_project_data)
 
-    # Assert that the QTabWidget has the correct number of tabs
-    tab_widget = projects_detail_view.findChild(QTabWidget)
-    assert tab_widget.count() == 7
+    model = view.tree_view.model()
+    root = model.item(0, 0)
+    child_names = {root.child(r, 0).text() for r in range(root.rowCount())}
 
-    # Assert that the tabs have the correct names
-    assert tab_widget.tabText(0) == "Locations"
-    assert tab_widget.tabText(1) == "Products"
-    assert tab_widget.tabText(2) == "Walls"
-    assert tab_widget.tabText(3) == "Custom Fields"
-    assert tab_widget.tabText(4) == "Specification Groups"
-    assert tab_widget.tabText(5) == "Global Prompts"
-    assert tab_widget.tabText(6) == "Wizard Prompts"
+    assert "Properties" in child_names
+    assert "Locations" in child_names
+    assert "Walls" in child_names
+    assert "Custom Fields" in child_names
+    assert "Specification Groups" in child_names
+    assert "Global Prompts" in child_names
+    assert "Wizard Prompts" in child_names
 
-def test_projects_detail_view_has_editable_fields(qtbot, mock_project_data):
+def test_projects_detail_view_properties_auto_expanded(qtbot, mock_project_data):
     """
-    Test that the ProjectsDetailView uses QLineEdit widgets for project properties.
+    The Properties group should be auto-expanded when a project is displayed.
     """
-    projects_detail_view = ProjectsDetailView()
-    qtbot.addWidget(projects_detail_view)
+    view = ProjectsDetailView()
+    qtbot.addWidget(view)
 
-    projects_detail_view = ProjectsDetailView()
-    qtbot.addWidget(projects_detail_view)
+    view.display_project(mock_project_data)
 
-    projects_detail_view.display_project(mock_project_data)
+    model = view.tree_view.model()
+    root_index = model.index(0, 0)
+    props_index = root_index.child(0, 0)
 
-    # Assert that the QFormLayout has QLineEdit widgets
-    form_layout = projects_detail_view.findChild(QFormLayout)
-    assert form_layout.rowCount() == 3
-
-    # Assert that the QLineEdit widgets have the correct text
-    assert form_layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget().text() == "101"
-    assert form_layout.itemAt(1, QFormLayout.ItemRole.FieldRole).widget().text() == "Test Project"
-    assert form_layout.itemAt(2, QFormLayout.ItemRole.FieldRole).widget().text() == "A complete project example."
-
-    # Assert that the widgets are of type QLineEdit
-    assert isinstance(form_layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget(), QLineEdit)
-    assert isinstance(form_layout.itemAt(1, QFormLayout.ItemRole.FieldRole).widget(), QLineEdit)
-    assert isinstance(form_layout.itemAt(2, QFormLayout.ItemRole.FieldRole).widget(), QLineEdit)
+    assert view.tree_view.isExpanded(root_index)
+    assert view.tree_view.isExpanded(props_index)
 
 def test_save_button_emits_signal(qtbot, mock_project_data):
     """
@@ -150,12 +150,12 @@ def test_save_button_emits_signal(qtbot, mock_project_data):
     assert blocker.args[0] == expected_data
 
 
-def test_projects_detail_view_clears_form_on_redisplay(qtbot, mock_project_data):
+def test_projects_detail_view_updates_on_redisplay(qtbot, mock_project_data):
     view = ProjectsDetailView()
     qtbot.addWidget(view)
     # first display
     view.display_project(mock_project_data)
-    assert view.form_layout.rowCount() == 3
+
     # second display with different data
     new_project = type(mock_project_data)(
         number="202",
@@ -164,6 +164,9 @@ def test_projects_detail_view_clears_form_on_redisplay(qtbot, mock_project_data)
         locations=[], products=[], walls=[], custom_fields=[], specification_groups=[], global_prompts=[], wizard_prompts=[]
     )
     view.display_project(new_project)
-    # still 3 rows and values updated
-    assert view.form_layout.rowCount() == 3
-    assert view.form_layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget().text() == "202"
+
+    model = view.tree_view.model()
+    root = model.item(0, 0)
+    props = _find_child_by_text(root, "Properties")
+    kv = {props.child(r, 0).text(): props.child(r, 1).text() for r in range(props.rowCount())}
+    assert kv.get("Number") == "202"

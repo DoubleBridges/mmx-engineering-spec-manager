@@ -21,6 +21,7 @@ from mmx_engineering_spec_manager.db_models.specification_group import Specifica
 from mmx_engineering_spec_manager.db_models.wall import Wall
 from mmx_engineering_spec_manager.db_models.wizard_prompts import WizardPrompts
 from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
+from mmx_engineering_spec_manager.mappers.innergy_mapper import map_project_payload_to_dto, map_products_payload_to_dtos
 from mmx_engineering_spec_manager.utilities.persistence import create_engine_and_sessionmaker, project_sqlite_db_path, create_engine_and_sessionmaker_for_sqlite_path
 from mmx_engineering_spec_manager.utilities import callout_import
 from mmx_engineering_spec_manager.utilities.settings import get_settings
@@ -413,5 +414,480 @@ class DataManager:
                 # Close only if we created a separate session
                 if 'Session2' in locals() and db_session is not (session if session is not None else self.session):
                     db_session.close()
+            except Exception:
+                pass
+    def ingest_project_details_to_project_db(self, project_number: str) -> bool:
+        """
+        Fetch a project's details from Innergy by ID (we use the project number as ID),
+        map to DTOs, and persist the data into that project's specific SQLite DB.
+        Returns True on success, False otherwise. Network/parse errors are swallowed with a warning.
+        """
+        try:
+            settings = get_settings()
+        except Exception:
+            settings = None
+        # Avoid unexpected network during tests/dev when API key is not configured
+        if not settings or not getattr(settings, "innergy_api_key", None):
+            try:
+                self._logger.info("Skipping Innergy ingest: API key not configured.")
+            except Exception:
+                pass
+            return False
+        try:
+            importer = InnergyImporter()
+            project_payload = importer.get_job_details(project_number) or {}
+            products_payload = importer.get_products(project_number) or []
+        except Exception as e:  # pragma: no cover
+            try:
+                self._logger.warning("Innergy fetch byId failed: %s", e)
+            except Exception:
+                pass
+            return False
+        if not project_payload:
+            return False
+        # Map payloads to our DTOs
+        try:
+            dto = map_project_payload_to_dto(project_payload, products_payload)
+        except Exception as e:  # pragma: no cover
+            try:
+                self._logger.warning("Mapping project payload failed: %s", e)
+            except Exception:
+                pass
+            return False
+        # Ensure a global Project exists (used to derive per-project DB path and id)
+        project = self.create_or_update_project({
+            "number": dto.number,
+            "name": dto.name,
+            "job_description": dto.job_description,
+            "job_address": dto.job_address,
+        })
+        # Prepare/open the per-project DB and persist collections there
+        db_path = self.prepare_project_db(project)
+        try:
+            engine2, Session2 = create_engine_and_sessionmaker_for_sqlite_path(db_path)
+            sess2 = Session2()
+        except Exception as e:  # pragma: no cover
+            try:
+                self._logger.warning("Failed to open per-project DB: %s", e)
+            except Exception:
+                pass
+            return False
+        try:
+            pid = getattr(project, "id", None)
+            if pid is None:
+                return False
+            # Upsert/refresh the Project row in the per-project DB
+            pr = sess2.query(Project).get(pid)
+            if pr is None:
+                pr = Project(
+                    id=pid,
+                    number=dto.number,
+                    name=dto.name,
+                    job_description=dto.job_description,
+                )
+                if hasattr(pr, "job_address"):
+                    setattr(pr, "job_address", dto.job_address)
+                sess2.add(pr)
+                sess2.flush()
+            else:
+                pr.number = dto.number
+                pr.name = dto.name
+                pr.job_description = dto.job_description
+                if hasattr(pr, "job_address"):
+                    setattr(pr, "job_address", dto.job_address)
+            # Clear existing child rows for this project
+            prod_ids = [row[0] for row in sess2.query(Product.id).filter_by(project_id=pid).all()]
+            if prod_ids:
+                sess2.query(CustomField).filter(CustomField.product_id.in_(prod_ids)).delete(synchronize_session=False)
+            sess2.query(CustomField).filter_by(project_id=pid).delete(synchronize_session=False)
+            sess2.query(Product).filter_by(project_id=pid).delete(synchronize_session=False)
+            sess2.query(Location).filter_by(project_id=pid).delete(synchronize_session=False)
+            # Insert locations
+            name_to_loc_id: dict[str, int] = {}
+            for loc_dto in dto.locations or []:
+                name = getattr(loc_dto, "name", None) or ""
+                if not name:
+                    continue
+                loc = Location(name=name, project_id=pid)
+                sess2.add(loc)
+                sess2.flush()
+                try:
+                    name_to_loc_id[name] = loc.id  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            # Insert products and their custom fields
+            for p_dto in dto.products or []:
+                prod = Product(
+                    name=getattr(p_dto, "name", ""),
+                    quantity=getattr(p_dto, "quantity", None),
+                    project_id=pid,
+                )
+                # If in future ProductDTO carries a location, we could map it here using name_to_loc_id
+                sess2.add(prod)
+                sess2.flush()
+                for cf in getattr(p_dto, "custom_fields", []) or []:
+                    sess2.add(CustomField(name=getattr(cf, "name", ""), value=getattr(cf, "value", None), product_id=prod.id))
+            # Project-level custom fields
+            for cf in getattr(dto, "custom_fields", []) or []:
+                sess2.add(CustomField(name=getattr(cf, "name", ""), value=getattr(cf, "value", None), project_id=pid))
+            sess2.commit()
+            return True
+        except Exception as e:  # pragma: no cover
+            try:
+                sess2.rollback()
+            except Exception:
+                pass
+            try:
+                self._logger.warning("Persisting project details to per-project DB failed: %s", e)
+            except Exception:
+                pass
+            return False
+        finally:
+            try:
+                sess2.close()
+            except Exception:
+                pass
+
+    def get_full_project_from_project_db(self, project_id: int):
+        """
+        Return the Project ORM object (with relationships loaded) from the project's specific DB.
+        Returns None if not found or on error.
+        """
+        # Build a minimal object to derive DB path
+        class _Tmp:
+            pass
+        tmp = _Tmp()
+        setattr(tmp, "id", project_id)
+        try:
+            db_path = self.prepare_project_db(tmp)
+            engine2, Session2 = create_engine_and_sessionmaker_for_sqlite_path(db_path)
+            sess2 = Session2()
+        except Exception as e:  # pragma: no cover
+            try:
+                self._logger.warning("Open per-project DB for read failed: %s", e)
+            except Exception:
+                pass
+            return None
+        try:
+            pr = sess2.query(Project).get(project_id)
+            if pr is None:
+                return None
+            # Force-load common relationships for display
+            try:
+                _ = list(getattr(pr, "locations", []) or [])
+                _ = list(getattr(pr, "products", []) or [])
+                _ = list(getattr(pr, "custom_fields", []) or [])
+                _ = list(getattr(pr, "walls", []) or [])
+                _ = list(getattr(pr, "specification_groups", []) or [])
+                _ = list(getattr(pr, "global_prompts", []) or [])
+                _ = list(getattr(pr, "wizard_prompts", []) or [])
+            except Exception:
+                pass
+            # Detach so it can be used after session closes
+            try:
+                sess2.expunge(pr)
+            except Exception:
+                pass
+            return pr
+        finally:
+            try:
+                sess2.close()
+            except Exception:
+                pass
+
+    def fetch_products_from_innergy(self, project_number: str):
+        """Fetch budget products for a project number from Innergy and map to simple dicts.
+        Returns a list of dicts with keys like: name, quantity, description, custom_fields, location,
+        and extended attributes from ProductModel (width, height, depth, item_number, comment, angle,
+        x_origin, y_origin, z_origin, link_id_specification_group, link_id_location, link_id_wall,
+        file_name, picture_name). Returns [] if API key not configured or on error.
+        """
+        try:
+            settings = get_settings()
+        except Exception:
+            settings = None
+        if not settings or not getattr(settings, "innergy_api_key", None):
+            try:
+                self._logger.info("Skipping Innergy products fetch: API key not configured.")
+            except Exception:
+                pass
+            return []
+        try:
+            importer = InnergyImporter()
+            products_payload = importer.get_products(project_number) or []
+            pdtos = map_products_payload_to_dtos(products_payload)
+            out = []
+            # Attempt to align locations and extended attributes from raw payload with mapped DTOs by index
+            for idx, p in enumerate(pdtos):
+                cfs = []
+                for cf in getattr(p, "custom_fields", []) or []:
+                    cfs.append({"name": getattr(cf, "name", ""), "value": getattr(cf, "value", None)})
+                # Defaults
+                location = None
+                width = height = depth = None
+                x_origin = y_origin = z_origin = None
+                item_number = comment = angle = None
+                link_sg = link_loc = link_wall = None
+                file_name = picture_name = None
+                try:
+                    src = products_payload[idx] if isinstance(products_payload, list) and idx < len(products_payload) else None
+                    if isinstance(src, dict):
+                        # Location can be str or dict
+                        loc_val = src.get("Location") or src.get("location") or src.get("LocationName") or src.get("locationName")
+                        if isinstance(loc_val, dict):
+                            location = loc_val.get("Name") or loc_val.get("name") or loc_val.get("Title") or loc_val.get("title")
+                        elif isinstance(loc_val, str):
+                            location = loc_val
+                        # Extended numeric/string attributes
+                        width = src.get("Width")
+                        height = src.get("Height")
+                        depth = src.get("Depth")
+                        x_origin = src.get("XOrigin")
+                        y_origin = src.get("YOrigin")
+                        z_origin = src.get("ZOrigin")
+                        item_number = src.get("ItemNumber")
+                        comment = src.get("Comment")
+                        angle = src.get("Angle")
+                        link_sg = src.get("LinkIDSpecificationGroup")
+                        link_loc = src.get("LinkIDLocation")
+                        link_wall = src.get("LinkIDWall")
+                        file_name = src.get("FileName")
+                        picture_name = src.get("PictureName")
+                except Exception:
+                    pass
+                out.append({
+                    "name": getattr(p, "name", ""),
+                    "quantity": getattr(p, "quantity", None),
+                    "description": getattr(p, "description", ""),
+                    "custom_fields": cfs,
+                    "location": location,
+                    # Extended attributes (snake_case)
+                    "width": width,
+                    "height": height,
+                    "depth": depth,
+                    "x_origin": x_origin,
+                    "y_origin": y_origin,
+                    "z_origin": z_origin,
+                    "item_number": item_number,
+                    "comment": comment,
+                    "angle": angle,
+                    "link_id_specification_group": link_sg,
+                    "link_id_location": link_loc,
+                    "link_id_wall": link_wall,
+                    "file_name": file_name,
+                    "picture_name": picture_name,
+                })
+            return out
+        except Exception as e:  # pragma: no cover
+            try:
+                self._logger.warning("Fetching products from Innergy failed: %s", e)
+            except Exception:
+                pass
+            return []
+
+    def get_products_for_project_from_project_db(self, project_id: int):
+        """Load products (and their custom fields) from the project's specific DB as a list of dicts,
+        including location and extended attributes in ProductModel.
+        """
+        # Open per-project DB session
+        try:
+            tmp = type("_Tmp", (), {})()
+            setattr(tmp, "id", project_id)
+            db_path = self.prepare_project_db(tmp)
+            engine2, Session2 = create_engine_and_sessionmaker_for_sqlite_path(db_path)
+            sess2 = Session2()
+        except Exception as e:  # pragma: no cover
+            try:
+                self._logger.warning("Open per-project DB for products failed: %s", e)
+            except Exception:
+                pass
+            return []
+        try:
+            prods = sess2.query(Product).filter_by(project_id=project_id).all()
+            out = []
+            for p in prods:
+                try:
+                    # Collect custom fields
+                    cfs = []
+                    extras_map = {}
+                    for cf in getattr(p, "custom_fields", []) or []:
+                        name = getattr(cf, "name", "")
+                        val = getattr(cf, "value", None)
+                        cfs.append({"name": name, "value": val})
+                        # Capture known extra attributes persisted as CFs
+                        if name in {"ItemNumber", "Comment", "Angle", "FileName", "PictureName"}:
+                            extras_map[name] = val
+                    # Location name if linked
+                    loc_name = None
+                    try:
+                        loc = getattr(p, 'location', None)
+                        if loc is not None:
+                            loc_name = getattr(loc, 'name', None)
+                    except Exception:
+                        loc_name = None
+                    out.append({
+                        "name": getattr(p, "name", ""),
+                        "quantity": getattr(p, "quantity", None),
+                        "description": getattr(p, "description", ""),
+                        "custom_fields": cfs,
+                        "location": loc_name,
+                        # Extended columns
+                        "width": getattr(p, "width", None),
+                        "height": getattr(p, "height", None),
+                        "depth": getattr(p, "depth", None),
+                        "x_origin": getattr(p, "x_origin_from_right", None),
+                        "y_origin": getattr(p, "y_origin_from_face", None),
+                        "z_origin": getattr(p, "z_origin_from_bottom", None),
+                        "link_id_specification_group": getattr(p, "specification_group_id", None),
+                        "link_id_wall": getattr(p, "wall_id", None),
+                        # Extras from custom fields
+                        "item_number": extras_map.get("ItemNumber"),
+                        "comment": extras_map.get("Comment"),
+                        "angle": extras_map.get("Angle"),
+                        "file_name": extras_map.get("FileName"),
+                        "picture_name": extras_map.get("PictureName"),
+                    })
+                except Exception:
+                    continue
+            return out
+        finally:
+            try:
+                sess2.close()
+            except Exception:
+                pass
+
+    def replace_products_for_project(self, project_id: int, products: list[dict] | list):
+        """Replace all products for a project in its per-project DB with provided products list.
+        Each product can be a dict or DTO with attributes name, quantity, description, custom_fields,
+        location, and extended attributes from ProductModel. Also upserts Location rows and links products.
+        """
+        # Open per-project DB session
+        try:
+            tmp = type("_Tmp", (), {})()
+            setattr(tmp, "id", project_id)
+            db_path = self.prepare_project_db(tmp)
+            engine2, Session2 = create_engine_and_sessionmaker_for_sqlite_path(db_path)
+            sess2 = Session2()
+        except Exception as e:  # pragma: no cover
+            try:
+                self._logger.warning("Open per-project DB for replace products failed: %s", e)
+            except Exception:
+                pass
+            return False
+        try:
+            # Delete existing products and their CFs
+            prod_ids = [row[0] for row in sess2.query(Product.id).filter_by(project_id=project_id).all()]
+            if prod_ids:
+                sess2.query(CustomField).filter(CustomField.product_id.in_(prod_ids)).delete(synchronize_session=False)
+            sess2.query(Product).filter_by(project_id=project_id).delete(synchronize_session=False)
+            # Preload locations mapping by name
+            existing_locs = sess2.query(Location).filter_by(project_id=project_id).all()
+            name_to_loc = { (getattr(l, 'name', '') or '').strip(): l for l in existing_locs }
+            # Insert new products
+            for d in (products or []):
+                is_dict = isinstance(d, dict)
+                name = getattr(d, 'name', None) if not is_dict else d.get('name')
+                qty = getattr(d, 'quantity', None) if not is_dict else d.get('quantity')
+                desc = getattr(d, 'description', None) if not is_dict else d.get('description')
+                width = getattr(d, 'width', None) if not is_dict else d.get('width')
+                height = getattr(d, 'height', None) if not is_dict else d.get('height')
+                depth = getattr(d, 'depth', None) if not is_dict else d.get('depth')
+                x_origin = getattr(d, 'x_origin', None) if not is_dict else d.get('x_origin')
+                y_origin = getattr(d, 'y_origin', None) if not is_dict else d.get('y_origin')
+                z_origin = getattr(d, 'z_origin', None) if not is_dict else d.get('z_origin')
+                link_sg = getattr(d, 'link_id_specification_group', None) if not is_dict else d.get('link_id_specification_group')
+                link_wall = getattr(d, 'link_id_wall', None) if not is_dict else d.get('link_id_wall')
+                # Create Product row
+                prod = Product(name=name or "", quantity=qty, project_id=project_id)
+                # Map columns present on model
+                if hasattr(prod, 'description'):
+                    setattr(prod, 'description', desc or "")
+                if hasattr(prod, 'width'):
+                    setattr(prod, 'width', width)
+                if hasattr(prod, 'height'):
+                    setattr(prod, 'height', height)
+                if hasattr(prod, 'depth'):
+                    setattr(prod, 'depth', depth)
+                if hasattr(prod, 'x_origin_from_right'):
+                    setattr(prod, 'x_origin_from_right', x_origin)
+                if hasattr(prod, 'y_origin_from_face'):
+                    setattr(prod, 'y_origin_from_face', y_origin)
+                if hasattr(prod, 'z_origin_from_bottom'):
+                    setattr(prod, 'z_origin_from_bottom', z_origin)
+                if hasattr(prod, 'specification_group_id'):
+                    try:
+                        setattr(prod, 'specification_group_id', int(link_sg) if link_sg is not None else None)
+                    except Exception:
+                        pass
+                if hasattr(prod, 'wall_id'):
+                    try:
+                        setattr(prod, 'wall_id', int(link_wall) if link_wall is not None else None)
+                    except Exception:
+                        pass
+                # Resolve/Upsert location by name if provided
+                loc_name = None
+                if is_dict:
+                    loc_name = d.get('location')
+                else:
+                    loc_name = getattr(d, 'location', None)
+                if isinstance(loc_name, str) and loc_name.strip():
+                    key = loc_name.strip()
+                    loc_obj = name_to_loc.get(key)
+                    if loc_obj is None:
+                        loc_obj = Location(name=key, project_id=project_id)
+                        sess2.add(loc_obj)
+                        sess2.flush()
+                        name_to_loc[key] = loc_obj
+                    try:
+                        prod.location_id = loc_obj.id
+                    except Exception:
+                        pass
+                # Persist product
+                sess2.add(prod)
+                sess2.flush()
+                # Custom fields (existing custom fields from payload)
+                cfs = getattr(d, 'custom_fields', None)
+                if is_dict:
+                    cfs = d.get('custom_fields')
+                for cf in (cfs or []):
+                    cf_name = getattr(cf, 'name', None) if not isinstance(cf, dict) else cf.get('name')
+                    cf_val = getattr(cf, 'value', None) if not isinstance(cf, dict) else cf.get('value')
+                    sess2.add(CustomField(name=cf_name or "", value=cf_val, product_id=prod.id))
+                # Persist extra attributes without dedicated columns as product custom fields
+                extras = {}
+                if is_dict:
+                    extras = {
+                        'ItemNumber': d.get('item_number'),
+                        'Comment': d.get('comment'),
+                        'Angle': d.get('angle'),
+                        'FileName': d.get('file_name'),
+                        'PictureName': d.get('picture_name'),
+                    }
+                else:
+                    extras = {
+                        'ItemNumber': getattr(d, 'item_number', None),
+                        'Comment': getattr(d, 'comment', None),
+                        'Angle': getattr(d, 'angle', None),
+                        'FileName': getattr(d, 'file_name', None),
+                        'PictureName': getattr(d, 'picture_name', None),
+                    }
+                for k, v in extras.items():
+                    if v is not None and v != "":
+                        sess2.add(CustomField(name=k, value=v, product_id=prod.id))
+            sess2.commit()
+            return True
+        except Exception as e:  # pragma: no cover
+            try:
+                sess2.rollback()
+            except Exception:
+                pass
+            try:
+                self._logger.warning("replace_products_for_project failed: %s", e)
+            except Exception:
+                pass
+            return False
+        finally:
+            try:
+                sess2.close()
             except Exception:
                 pass

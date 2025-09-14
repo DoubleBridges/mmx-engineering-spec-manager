@@ -1,13 +1,13 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, QTimer, Qt, QCoreApplication
 from PySide6.QtGui import QCloseEvent, QAction
-from PySide6.QtWidgets import (QMainWindow, QTabWidget)
+from PySide6.QtWidgets import (QMainWindow, QTabWidget, QProgressDialog, QMessageBox)
 
 from .export.export_tab import ExportTab
 from .projects.projects_tab import ProjectsTab
 from .workspace.workspace_tab import WorkspaceTab
 from .attributes.attributes_tab import AttributesTab
-from PySide6.QtCore import QTimer
 from mmx_engineering_spec_manager.data_manager.manager import DataManager
+from mmx_engineering_spec_manager.utilities.settings import get_settings
 
 
 class MainWindow(QMainWindow):
@@ -52,6 +52,13 @@ class MainWindow(QMainWindow):
         self.projects_tab = ProjectsTab()
         self.projects_detail_view = self.projects_tab.projects_detail_view
         self.tab_widget.addTab(self.projects_tab, "Projects")
+        # Wire detail view actions
+        try:
+            self.projects_detail_view.load_products_clicked_signal.connect(self._on_load_products_from_innergy)
+            self.projects_detail_view.save_products_changes_clicked_signal.connect(self._on_save_products_changes)
+        except Exception:
+            pass
+        self._pending_products = None
         
         # Data manager for preparing per-project databases
         try:
@@ -116,7 +123,68 @@ class MainWindow(QMainWindow):
                     self._data_manager.prepare_project_db(project)
                 except Exception:  # pragma: no cover
                     pass  # pragma: no cover
-            self.projects_tab.display_project_details(project)
+            # Attempt to ingest live project details by project number into the per-project DB,
+            # then load the enriched project back for display. Falls back to the original object.
+            project_to_show = project
+            try:
+                if getattr(self, "_data_manager", None) is not None:
+                    num = getattr(project, "number", None)
+                    if num:
+                        # Show a progress dialog during the byId API ingestion when API key is configured
+                        success = None
+                        error_text = None
+                        try:
+                            settings = get_settings()
+                        except Exception:
+                            settings = None
+                        has_api_key = bool(getattr(settings, "innergy_api_key", None))
+                        dlg = None
+                        try:
+                            if has_api_key:
+                                dlg = QProgressDialog("Loading project details from Innergy...", "", 0, 0, self)
+                                try:
+                                    dlg.setCancelButton(None)
+                                except Exception:
+                                    pass
+                                dlg.setWindowModality(Qt.WindowModal)
+                                dlg.setAutoClose(True)
+                                dlg.setMinimumDuration(0)
+                                dlg.show()
+                                try:
+                                    QCoreApplication.processEvents()
+                                except Exception:
+                                    pass
+                            # Perform ingestion (blocking)
+                            try:
+                                success = self._data_manager.ingest_project_details_to_project_db(str(num))
+                            except Exception as e:
+                                error_text = str(e)
+                                success = False
+                        finally:
+                            try:
+                                if dlg is not None:
+                                    dlg.close()
+                            except Exception:
+                                pass
+                        # If API key was present and ingestion failed, surface an error
+                        if has_api_key and not success:
+                            try:
+                                msg = f"Failed to load project details from Innergy for project {num}."
+                                if error_text:
+                                    msg += f"\nDetails: {error_text}"
+                                QMessageBox.critical(self, "Innergy Load Failed", msg)
+                            except Exception:
+                                pass
+                        # Try to load enriched project from per-project DB regardless
+                        try:
+                            enriched = self._data_manager.get_full_project_from_project_db(getattr(project, "id", None))
+                            if enriched is not None:
+                                project_to_show = enriched
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            self.projects_tab.display_project_details(project_to_show)
         except Exception:
             pass
         # Inform Attributes tab about the active project
@@ -146,6 +214,162 @@ class MainWindow(QMainWindow):
                 self.attributes_tab.load_callouts_for_active_project()
         except Exception:
             pass
+
+    # --- Innergy Products Load/Save workflow ---
+    def _normalize_products_for_compare(self, products_list):
+        """Return a sorted list of tuples for stable equality compare including extended attributes."""
+        norm = []
+        for d in (products_list or []):
+            if isinstance(d, dict):
+                name = d.get("name") or ""
+                qty = d.get("quantity")
+                desc = d.get("description") or ""
+                cfs = d.get("custom_fields") or []
+                loc = d.get("location") or ""
+                width = d.get("width")
+                height = d.get("height")
+                depth = d.get("depth")
+                xo = d.get("x_origin")
+                yo = d.get("y_origin")
+                zo = d.get("z_origin")
+                item_no = d.get("item_number") or ""
+                comment = d.get("comment") or ""
+                angle = d.get("angle")
+                link_sg = d.get("link_id_specification_group")
+                link_loc = d.get("link_id_location")
+                link_wall = d.get("link_id_wall")
+                file_name = d.get("file_name") or ""
+                picture_name = d.get("picture_name") or ""
+            else:
+                name = getattr(d, "name", "")
+                qty = getattr(d, "quantity", None)
+                desc = getattr(d, "description", "")
+                cfs = getattr(d, "custom_fields", []) or []
+                loc = getattr(d, "location", "") if hasattr(d, "location") else ""
+                width = getattr(d, "width", None)
+                height = getattr(d, "height", None)
+                depth = getattr(d, "depth", None)
+                xo = getattr(d, "x_origin", None)
+                yo = getattr(d, "y_origin", None)
+                zo = getattr(d, "z_origin", None)
+                item_no = getattr(d, "item_number", "")
+                comment = getattr(d, "comment", "")
+                angle = getattr(d, "angle", None)
+                link_sg = getattr(d, "link_id_specification_group", None)
+                link_loc = getattr(d, "link_id_location", None)
+                link_wall = getattr(d, "link_id_wall", None)
+                file_name = getattr(d, "file_name", "")
+                picture_name = getattr(d, "picture_name", "")
+            cf_pairs = []
+            for cf in cfs:
+                if isinstance(cf, dict):
+                    cf_pairs.append((cf.get("name") or "", cf.get("value")))
+                else:
+                    cf_pairs.append((getattr(cf, "name", ""), getattr(cf, "value", None)))
+            cf_pairs.sort()
+            norm.append((name, qty, desc, loc, width, height, depth, xo, yo, zo, item_no, comment, angle, link_sg, link_loc, link_wall, file_name, picture_name, tuple(cf_pairs)))
+        norm.sort()
+        return norm
+
+    def _on_load_products_from_innergy(self):
+        project = getattr(self, "current_project", None)
+        if project is None or getattr(self, "_data_manager", None) is None:
+            return
+        num = getattr(project, "number", None)
+        pid = getattr(project, "id", None)
+        if not num or pid is None:
+            return
+        # Show progress only if API key configured
+        try:
+            settings = get_settings()
+        except Exception:
+            settings = None
+        has_api_key = bool(getattr(settings, "innergy_api_key", None))
+        dlg = None
+        try:
+            if has_api_key:
+                dlg = QProgressDialog("Loading products from Innergy...", "", 0, 0, self)
+                try:
+                    dlg.setCancelButton(None)
+                except Exception:
+                    pass
+                dlg.setWindowModality(Qt.WindowModal)
+                dlg.setAutoClose(True)
+                dlg.setMinimumDuration(0)
+                dlg.show()
+                try:
+                    QCoreApplication.processEvents()
+                except Exception:
+                    pass
+            # Fetch products
+            fetched = self._data_manager.fetch_products_from_innergy(str(num)) or []
+        finally:
+            try:
+                if dlg is not None:
+                    dlg.close()
+            except Exception:
+                pass
+        # Compare with current DB products
+        try:
+            current_db = self._data_manager.get_products_for_project_from_project_db(pid) or []
+        except Exception:
+            current_db = []
+        if self._normalize_products_for_compare(fetched) == self._normalize_products_for_compare(current_db):
+            try:
+                QMessageBox.information(self, "No Changes", "No changes were discovered.")
+            except Exception:
+                pass
+            try:
+                self.projects_detail_view.set_save_products_changes_enabled(False)
+            except Exception:
+                pass
+            self._pending_products = None
+            return
+        # Show fetched products in the detail tree without persisting
+        self._pending_products = fetched
+        # Update (do not replace) the existing tree's Locations subtree
+        try:
+            self.projects_detail_view.update_products_from_dicts(fetched)
+        except Exception:
+            pass
+        try:
+            self.projects_detail_view.set_save_products_changes_enabled(True)
+        except Exception:
+            pass
+
+    def _on_save_products_changes(self):
+        project = getattr(self, "current_project", None)
+        if project is None or getattr(self, "_data_manager", None) is None:
+            return
+        pid = getattr(project, "id", None)
+        if pid is None:
+            return
+        if not self._pending_products:
+            return
+        ok = False
+        try:
+            ok = self._data_manager.replace_products_for_project(pid, self._pending_products)
+        except Exception:
+            ok = False
+        if ok:
+            # Clear pending and disable button
+            self._pending_products = None
+            try:
+                self.projects_detail_view.set_save_products_changes_enabled(False)
+            except Exception:
+                pass
+            # Reload enriched project from per-project DB and display
+            try:
+                enriched = self._data_manager.get_full_project_from_project_db(pid)
+                if enriched is not None:
+                    self.projects_tab.display_project_details(enriched)
+            except Exception:
+                pass
+        else:
+            try:
+                QMessageBox.critical(self, "Save Failed", "Failed to save products changes to the project database.")
+            except Exception:
+                pass
 
     def show(self):
         super().show()
