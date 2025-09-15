@@ -3,6 +3,7 @@ from .workspace_view_model import WorkspaceViewModel, WorkspaceViewState
 from .attributes_view_model import AttributesViewModel, AttributesViewState
 from .projects_view_model import ProjectsViewModel, ProjectsViewState
 from .project_details_view_model import ProjectDetailsViewModel, ProjectDetailsViewState
+from .export_view_model import ExportViewModel, ExportViewState
 
 __all__ = [
     "MainWindowViewModel",
@@ -15,4 +16,6 @@ __all__ = [
     "ProjectsViewState",
     "ProjectDetailsViewModel",
     "ProjectDetailsViewState",
+    "ExportViewModel",
+    "ExportViewState",
 ]

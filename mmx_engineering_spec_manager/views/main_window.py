@@ -155,6 +155,20 @@ class MainWindow(QMainWindow):
 
         self.export_tab = ExportTab()
         self.tab_widget.addTab(self.export_tab, "Export")
+        # Build and attach ExportViewModel (placeholder)
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_export_view_model
+            self._export_vm = build_export_view_model()
+            try:
+                if hasattr(self.export_tab, "set_view_model"):
+                    self.export_tab.set_view_model(self._export_vm)
+            except Exception:
+                pass
+            # Bridge active project to Export VM as well
+            if self._vm is not None:
+                self._vm.project_opened.subscribe(self._export_vm.set_active_project)
+        except Exception:
+            self._export_vm = None  # pragma: no cover
 
         # Cache tab indexes
         self._idx_projects = self.tab_widget.indexOf(self.projects_tab)

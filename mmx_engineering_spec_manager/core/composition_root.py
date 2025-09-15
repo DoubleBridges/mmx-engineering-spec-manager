@@ -1,8 +1,12 @@
 from __future__ import annotations
+import os
 from typing import Any
 
-from mmx_engineering_spec_manager.viewmodels import MainWindowViewModel, WorkspaceViewModel, AttributesViewModel, ProjectsViewModel
+from mmx_engineering_spec_manager.viewmodels import MainWindowViewModel, WorkspaceViewModel, AttributesViewModel, ProjectsViewModel, ExportViewModel
 from mmx_engineering_spec_manager.services import ProjectBootstrapService, AttributesService
+
+# Feature flag per plan; currently only informative as controllers are removed.
+USE_MVVM_ONLY = os.getenv("USE_MVVM_ONLY", "1") not in {"0", "false", "False"}
 
 
 def build_main_window_view_model(data_manager: Any | None = None) -> MainWindowViewModel:
@@ -104,3 +108,18 @@ def build_project_details_view_model(data_manager: Any | None = None):
         products_service=products_service,
         data_manager=data_manager,
     )
+
+
+def build_export_view_model(data_manager: Any | None = None) -> ExportViewModel:
+    """Factory to construct ExportViewModel.
+
+    Provides a placeholder ExportService if implemented in future. For now, inject None.
+    """
+    try:
+        from mmx_engineering_spec_manager.services import ExportService  # type: ignore
+    except Exception:  # pragma: no cover
+        ExportService = None  # type: ignore
+    service = None
+    if data_manager is not None and ExportService is not None:
+        service = ExportService(data_manager)
+    return ExportViewModel(export_service=service)
