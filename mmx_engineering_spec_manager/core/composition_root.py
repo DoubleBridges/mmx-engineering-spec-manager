@@ -2,14 +2,16 @@ from __future__ import annotations
 from typing import Any
 
 from mmx_engineering_spec_manager.viewmodels import MainWindowViewModel, WorkspaceViewModel, AttributesViewModel
+from mmx_engineering_spec_manager.services import ProjectBootstrapService
 
 
 def build_main_window_view_model(data_manager: Any) -> MainWindowViewModel:
     """Factory to construct MainWindowViewModel with injected dependencies.
 
-    Kept minimal for step 1; in later steps, split services and pass them here.
+    Now inject ProjectBootstrapService to handle project DB ensure/ingest/load orchestration.
     """
-    vm = MainWindowViewModel(data_manager=data_manager)
+    bootstrap = ProjectBootstrapService(data_manager)
+    vm = MainWindowViewModel(data_manager=data_manager, project_bootstrap_service=bootstrap)
     return vm
 
 

@@ -1,6 +1,7 @@
 import types
 
 from mmx_engineering_spec_manager.viewmodels import MainWindowViewModel
+from mmx_engineering_spec_manager.services import Result
 
 
 class DummyProject:
@@ -43,4 +44,32 @@ def test_set_active_project_updates_state_and_emits_event():
 
     vm.set_error("oops")
     assert vm.view_state.error == "oops"
-    assert any(n["level"] == "error" and n["message"] == "oops" for n in events["notifications"])
+    assert any(n["level"] == "error" and n["message"] == "oops" for n in events["notifications"]) 
+
+
+def test_vm_delegates_ensure_to_bootstrap_service_and_emits_open():
+    # Arrange dummy service capturing calls
+    calls = {"ensure": []}
+
+    class DummyService:
+        def ensure_project_db(self, project):
+            calls["ensure"].append(getattr(project, "id", None))
+            return Result.ok_value(None)
+
+    vm = MainWindowViewModel(data_manager=types.SimpleNamespace(), project_bootstrap_service=DummyService())
+
+    # Subscribe to opened event
+    opened = {"project": None}
+
+    def on_opened(p):
+        opened["project"] = p
+
+    vm.project_opened.subscribe(on_opened)
+
+    # Act
+    p = DummyProject(pid=42)
+    vm.set_active_project(p)
+
+    # Assert: service was called and event emitted
+    assert calls["ensure"] == [42]
+    assert opened["project"] is p

@@ -66,8 +66,18 @@ class MainWindowViewModel:
     - No direct UI toolkit usage or knowledge
     """
 
-    def __init__(self, data_manager: DataManager) -> None:
+    def __init__(self, data_manager: DataManager | Any = None, project_bootstrap_service: Any | None = None) -> None:
+        # Keep DataManager for legacy paths during phased migration
         self._data_manager = data_manager
+        # Bootstrap service handles ensure/load/ingest orchestration
+        if project_bootstrap_service is None:
+            try:
+                from mmx_engineering_spec_manager.services import ProjectBootstrapService  # type: ignore
+                self._bootstrap_service = ProjectBootstrapService(data_manager)
+            except Exception:  # pragma: no cover
+                self._bootstrap_service = None  # type: ignore
+        else:
+            self._bootstrap_service = project_bootstrap_service
         self.view_state: MainWindowViewState = MainWindowViewState()
 
         # Events
@@ -93,9 +103,14 @@ class MainWindowViewModel:
             db_path = project_sqlite_db_path(project)
             existed_already = bool(db_path and os.path.exists(db_path))
 
-            # Ensure the project's dedicated SQLite DB and schema exists
+            # Ensure the project's dedicated SQLite DB and schema exists (delegate to service)
             try:
-                self._data_manager.prepare_project_db(project)
+                if getattr(self, "_bootstrap_service", None) is not None:
+                    res = self._bootstrap_service.ensure_project_db(project)
+                    if not getattr(res, "ok", False):
+                        self.notify(f"Failed to prepare project DB: {getattr(res, 'error', 'unknown error')}", level="warning")
+                elif getattr(self, "_data_manager", None) is not None:  # fallback during transition
+                    self._data_manager.prepare_project_db(project)
             except Exception as e:  # pragma: no cover
                 # Non-fatal in VM; proceed and let subsequent steps attempt to load/ingest
                 self.notify(f"Failed to prepare project DB: {e}", level="warning")
