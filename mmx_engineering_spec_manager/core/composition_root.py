@@ -15,12 +15,23 @@ def build_main_window_view_model(data_manager: Any) -> MainWindowViewModel:
     return vm
 
 
-def build_workspace_view_model() -> WorkspaceViewModel:
+def build_workspace_view_model(data_manager: Any | None = None) -> WorkspaceViewModel:
     """Factory to construct WorkspaceViewModel.
 
-    No dependencies yet; will inject domain services as they are extracted.
+    Builds and injects WorkspaceService for domain data loading/saving.
     """
-    return WorkspaceViewModel()
+    try:
+        from mmx_engineering_spec_manager.services import WorkspaceService  # local import to avoid cycles
+    except Exception:  # pragma: no cover
+        WorkspaceService = None  # type: ignore
+    if data_manager is None:
+        try:  # lazily construct a DataManager if one wasn't provided
+            from mmx_engineering_spec_manager.data_manager.manager import DataManager  # type: ignore
+            data_manager = DataManager()
+        except Exception:  # pragma: no cover
+            data_manager = None
+    service = WorkspaceService(data_manager) if (data_manager is not None and WorkspaceService is not None) else None
+    return WorkspaceViewModel(workspace_service=service)
 
 
 def build_attributes_view_model(data_manager: Any | None = None) -> AttributesViewModel:
