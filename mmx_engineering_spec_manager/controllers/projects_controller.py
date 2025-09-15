@@ -29,6 +29,8 @@ class ProjectsController(QObject):
         self._progress_dialog = None
         self._imported_count = 0
         self._import_had_error = False
+        # Pending products staged from Innergy (legacy flow)
+        self._pending_products = None
 
         # If a ViewModel is provided, subscribe to its events to update the View
         try:
@@ -46,6 +48,14 @@ class ProjectsController(QObject):
         # Wire import to async handler
         if hasattr(self.projects_tab, 'import_projects_signal'):
             self.projects_tab.import_projects_signal.connect(self.import_from_innergy)
+        # Wire product load/save actions from detail view (legacy controller path)
+        try:
+            if hasattr(self.projects_detail_view, 'load_products_clicked_signal'):
+                self.projects_detail_view.load_products_clicked_signal.connect(self._on_load_products_from_innergy)
+            if hasattr(self.projects_detail_view, 'save_products_changes_clicked_signal'):
+                self.projects_detail_view.save_products_changes_clicked_signal.connect(self._on_save_products_changes)
+        except Exception:
+            pass
 
     @Slot()
     def load_projects(self):
@@ -211,6 +221,165 @@ class ProjectsController(QObject):
         except Exception:
             # Headless fallback (e.g., tests without a QWidget environment)
             print(f"Import error: {message}")
+
+    # ---- Products (legacy controller path for ProjectsDetailView button) ----
+    def _normalize_products_for_compare(self, products_list):
+        """Return a sorted, normalized structure for stable product equality compare.
+        Includes extended attributes if present to avoid false mismatches.
+        """
+        norm = []
+        for d in (products_list or []):
+            if isinstance(d, dict):
+                name = d.get("name") or ""
+                qty = d.get("quantity")
+                desc = d.get("description") or ""
+                cfs = d.get("custom_fields") or []
+                loc = d.get("location") or ""
+                width = d.get("width")
+                height = d.get("height")
+                depth = d.get("depth")
+                xo = d.get("x_origin")
+                yo = d.get("y_origin")
+                zo = d.get("z_origin")
+                item_no = d.get("item_number") or ""
+                comment = d.get("comment") or ""
+                angle = d.get("angle")
+                link_sg = d.get("link_id_specification_group")
+                link_loc = d.get("link_id_location")
+                link_wall = d.get("link_id_wall")
+                file_name = d.get("file_name") or ""
+                picture_name = d.get("picture_name") or ""
+            else:
+                name = getattr(d, "name", "")
+                qty = getattr(d, "quantity", None)
+                desc = getattr(d, "description", "")
+                cfs = getattr(d, "custom_fields", []) or []
+                loc = getattr(d, "location", "") if hasattr(d, "location") else ""
+                width = getattr(d, "width", None)
+                height = getattr(d, "height", None)
+                depth = getattr(d, "depth", None)
+                xo = getattr(d, "x_origin", None)
+                yo = getattr(d, "y_origin", None)
+                zo = getattr(d, "z_origin", None)
+                item_no = getattr(d, "item_number", "")
+                comment = getattr(d, "comment", "")
+                angle = getattr(d, "angle", None)
+                link_sg = getattr(d, "link_id_specification_group", None)
+                link_loc = getattr(d, "link_id_location", None)
+                link_wall = getattr(d, "link_id_wall", None)
+                file_name = getattr(d, "file_name", "")
+                picture_name = getattr(d, "picture_name", "")
+            cf_pairs = []
+            for cf in cfs:
+                if isinstance(cf, dict):
+                    cf_pairs.append((cf.get("name") or "", cf.get("value")))
+                else:
+                    cf_pairs.append((getattr(cf, "name", ""), getattr(cf, "value", None)))
+            cf_pairs.sort()
+            norm.append((name, qty, desc, loc, width, height, depth, xo, yo, zo, item_no, comment, angle, link_sg, link_loc, link_wall, file_name, picture_name, tuple(cf_pairs)))
+        norm.sort()
+        return norm
+
+    @Slot()
+    def _on_load_products_from_innergy(self):
+        # Determine current project context from the tab
+        project = getattr(self.projects_tab, "current_project", None)
+        if project is None or self.data_manager is None:
+            return
+        num = getattr(project, "number", None)
+        pid = getattr(project, "id", None)
+        if not num or pid is None:
+            return
+        # Show a simple progress dialog only if API key configured
+        try:
+            s = get_settings()
+        except Exception:
+            s = None
+        has_api_key = bool(getattr(s, "innergy_api_key", None))
+        dlg = None
+        try:
+            if has_api_key:
+                dlg = QProgressDialog("Loading products from Innergy...", "", 0, 0, self.projects_detail_view)
+                try:
+                    dlg.setCancelButton(None)
+                except Exception:
+                    pass
+                dlg.setWindowModality(dlg.windowModality())
+                dlg.setAutoClose(True)
+                dlg.setMinimumDuration(0)
+                dlg.show()
+            # Fetch products from API
+            fetched = self.data_manager.fetch_products_from_innergy(str(num)) or []
+        finally:
+            try:
+                if dlg is not None:
+                    dlg.close()
+            except Exception:
+                pass
+        # Compare with DB
+        try:
+            current_db = self.data_manager.get_products_for_project_from_project_db(pid) or []
+        except Exception:
+            current_db = []
+        if self._normalize_products_for_compare(fetched) == self._normalize_products_for_compare(current_db):
+            try:
+                QMessageBox.information(self.projects_detail_view, "No Changes", "No changes were discovered.")
+            except Exception:
+                pass
+            try:
+                self.projects_detail_view.set_save_products_changes_enabled(False)
+            except Exception:
+                pass
+            self._pending_products = None
+            return
+        # Stage and update UI (without persisting)
+        self._pending_products = list(fetched)
+        try:
+            self.projects_detail_view.update_products_from_dicts(fetched)
+        except Exception:
+            pass
+        try:
+            self.projects_detail_view.set_save_products_changes_enabled(True)
+        except Exception:
+            pass
+
+    @Slot()
+    def _on_save_products_changes(self):
+        project = getattr(self.projects_tab, "current_project", None)
+        if project is None or self.data_manager is None:
+            return
+        pid = getattr(project, "id", None)
+        if pid is None:
+            return
+        if not self._pending_products:
+            return
+        ok = False
+        try:
+            ok = self.data_manager.replace_products_for_project(pid, self._pending_products)
+        except Exception:
+            ok = False
+        if ok:
+            # Clear pending and disable Save Changes
+            self._pending_products = None
+            try:
+                self.projects_detail_view.set_save_products_changes_enabled(False)
+            except Exception:
+                pass
+            # Reload enriched project for display
+            try:
+                enriched = self.data_manager.get_full_project_from_project_db(pid)
+                if enriched is not None:
+                    # Re-render in both detail view and tab (if supported)
+                    self.projects_detail_view.display_project(enriched)
+                    if hasattr(self.projects_tab, 'display_project_details'):
+                        self.projects_tab.display_project_details(enriched)
+            except Exception:
+                pass
+        else:
+            try:
+                QMessageBox.critical(self.projects_detail_view, "Save Failed", "Failed to save products changes to the project database.")
+            except Exception:
+                pass
 
     @Slot(object)
     def open_project(self, project):
