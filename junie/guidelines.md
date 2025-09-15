@@ -230,3 +230,25 @@ mmx_engineering_spec_manager/
 ### Versioning This Guideline
 - Any deviation from these rules must be recorded in this file with justification.
 - Keep Junie aligned by referencing this file explicitly in tasks and PRs.
+
+
+## Quality Gates
+
+To enforce MVVM at the boundaries, this repo includes a static guard executed by pytest:
+
+- tests/test_quality/test_views_no_service_repo_imports.py parses all files under mmx_engineering_spec_manager/views and fails if any View imports from:
+  - mmx_engineering_spec_manager.services.*
+  - mmx_engineering_spec_manager.repositories.*
+  - mmx_engineering_spec_manager.data_manager.*
+- Views may import composition-root builders (mmx_engineering_spec_manager.core.composition_root) and utilities.
+
+Run locally:
+
+- pytest -q tests/test_quality/test_views_no_service_repo_imports.py
+
+Pull Request checklist additions:
+
+- [ ] Views do not import services/, repositories/, or data_manager/ (static test passes)
+- [ ] View logic is UI-only; all I/O is in Services and invoked via ViewModels
+- [ ] composition_root builds and injects dependencies (no globals)
+- [ ] ViewModels expose state and events; tests cover happy/error paths
