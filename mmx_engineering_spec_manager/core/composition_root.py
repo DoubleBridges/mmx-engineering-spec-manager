@@ -60,14 +60,10 @@ def build_attributes_view_model(data_manager: Any | None = None) -> AttributesVi
 def build_projects_view_model(data_manager: Any | None = None) -> ProjectsViewModel:
     """Factory to construct ProjectsViewModel.
 
-    For now it wraps DataManager directly; later can be expanded with services.
+    Keep DataManager lazy to avoid heavy side effects during View construction in tests.
+    The ViewModel will resolve DataManager on-demand when commands are invoked.
     """
-    if data_manager is None:
-        try:  # lazily construct a DataManager if one wasn't provided
-            from mmx_engineering_spec_manager.data_manager.manager import DataManager  # type: ignore
-            data_manager = DataManager()
-        except Exception:  # pragma: no cover
-            data_manager = None
+    # Intentionally do not create DataManager here to keep Views UI-only and tests lightweight
     return ProjectsViewModel(data_manager=data_manager)
 
 

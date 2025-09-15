@@ -1,7 +1,7 @@
 import os
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QStandardItemModel, QStandardItem
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableView, QPushButton, QPlainTextEdit, QHeaderView, QLineEdit
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableView, QPushButton, QPlainTextEdit, QHeaderView, QLineEdit, QProgressDialog, QMessageBox
 
 from .projects_detail_view import ProjectsDetailView
 
@@ -15,6 +15,8 @@ class ProjectsTab(QWidget):
         self.projects = []
         self.current_project = None
         self._row_to_project_index = []  # maps visible row -> original self.projects index
+        self._vm = None
+        self._progress_dialog = None
 
         # UI Elements
         self.projects_table = QTableView()
@@ -197,3 +199,86 @@ class ProjectsTab(QWidget):
             pass
         # Clear current project context in the tab
         self.current_project = None
+
+    # --- MVVM wiring ---
+    def set_view_model(self, vm):
+        """Attach a ProjectsViewModel and wire UI events to it."""
+        self._vm = vm
+        try:
+            # Forward import button to VM command
+            self.import_button.clicked.connect(getattr(vm, 'import_from_innergy'))
+        except Exception:
+            pass
+        try:
+            # Render projects list when VM emits
+            vm.projects_loaded.subscribe(self.display_projects)
+        except Exception:
+            pass
+        # Progress dialog management
+        try:
+            vm.import_started.subscribe(lambda: self._show_progress("Importing projects from Innergy..."))
+            vm.import_progress.subscribe(self._set_progress_value)
+            vm.import_completed.subscribe(self._on_import_completed)
+        except Exception:
+            pass
+        # Notifications
+        try:
+            vm.notification.subscribe(self._on_notification)
+        except Exception:
+            pass
+        # Initial load is triggered elsewhere to avoid side effects during tests
+
+    # --- UI helpers (safe in headless tests) ---
+    def _show_progress(self, text: str):
+        try:
+            self._progress_dialog = QProgressDialog(text, "", 0, 100, self)
+            try:
+                self._progress_dialog.setCancelButton(None)
+            except Exception:
+                pass
+            self._progress_dialog.setAutoClose(False)
+            self._progress_dialog.setAutoReset(False)
+            self._progress_dialog.setMinimumDuration(0)
+            self._progress_dialog.setValue(0)
+            self._progress_dialog.show()
+        except Exception:
+            self._progress_dialog = None
+
+    def _set_progress_value(self, v: int):
+        try:
+            if self._progress_dialog is not None:
+                self._progress_dialog.setValue(int(v))
+        except Exception:
+            pass
+
+    def _on_import_completed(self, count: int):
+        try:
+            if self._progress_dialog is not None:
+                self._progress_dialog.setValue(100)
+                self._progress_dialog.close()
+        except Exception:
+            pass
+        finally:
+            self._progress_dialog = None
+        # Informational message
+        try:
+            if int(count) > 0:
+                QMessageBox.information(self, "Import Complete", f"Successfully imported/updated {int(count)} project(s).")
+            else:
+                QMessageBox.warning(self, "No Projects Imported", "The Innergy API returned no importable projects.")
+        except Exception:
+            pass
+
+    def _on_notification(self, msg: dict | None):
+        try:
+            level = (msg or {}).get("level")
+            text = (msg or {}).get("message") or ""
+            if level == "error":
+                QMessageBox.critical(self, "Error", text)
+            elif level == "warning":
+                QMessageBox.warning(self, "Warning", text)
+            elif level == "info":
+                # Optional toast replacement
+                pass
+        except Exception:
+            pass

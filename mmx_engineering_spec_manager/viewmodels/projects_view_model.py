@@ -41,8 +41,10 @@ class ProjectsViewModel:
 
     Responsibilities (UI-agnostic):
     - Load the projects list from a DataManager/Repository
+    - Import/sync projects from Innergy with progress notifications
+    - Save changes to a project (placeholder for future form)
     - Open a project by id (return a detailed project object)
-    - Emit events the View/Controller can subscribe to
+    - Emit events the View can subscribe to
     """
 
     def __init__(self, data_manager: DataManager | Any = None) -> None:
@@ -52,11 +54,24 @@ class ProjectsViewModel:
         self.projects_loaded = Event()
         self.project_opened = Event()
         self.notification = Event()
+        # Import progress events
+        self.import_started = Event()
+        self.import_progress = Event()
+        self.import_completed = Event()
 
     # ---- Commands ----
+    def _ensure_dm(self):
+        if getattr(self, "_dm", None) is None:
+            try:
+                from mmx_engineering_spec_manager.data_manager.manager import DataManager  # type: ignore
+                self._dm = DataManager()
+            except Exception:
+                self._dm = None
+
     def load_projects(self) -> List[Any]:
         try:
             projects = []
+            self._ensure_dm()
             if getattr(self, "_dm", None) is not None:
                 projects = self._dm.get_all_projects()
             self.view_state.projects = list(projects or [])
@@ -66,6 +81,47 @@ class ProjectsViewModel:
         except Exception as e:  # pragma: no cover
             self._set_error(str(e))
             return []
+
+    def import_from_innergy(self) -> None:
+        """Synchronize projects from Innergy and emit progress events.
+
+        The DataManager supports an optional progress callback; reuse it to emit
+        incremental progress, and then refresh the project list.
+        """
+        try:
+            self.import_started.emit()
+        except Exception:
+            pass
+        try:
+            count = 0
+            self._ensure_dm()
+            if getattr(self, "_dm", None) is not None:
+                # pass our import_progress.emit as the callback
+                count = int(self._dm.sync_projects_from_innergy(progress=self.import_progress.emit) or 0)
+            # refresh list after import
+            try:
+                projs = self._dm.get_all_projects() if getattr(self, "_dm", None) is not None else []
+            except Exception:
+                projs = []
+            self.view_state.projects = list(projs or [])
+            self.projects_loaded.emit(self.view_state.projects)
+            try:
+                self.import_completed.emit(count)
+            except Exception:
+                pass
+        except Exception as e:
+            self._set_error(str(e))
+
+    def save_project(self, project_data: dict[str, Any] | Any) -> None:
+        """Persist a project's basic fields via DataManager and refresh list."""
+        try:
+            if getattr(self, "_dm", None) is not None and project_data is not None:
+                self._dm.save_project(project_data)
+            # refresh list
+            self.load_projects()
+            self.notification.emit({"level": "info", "message": "Project saved"})
+        except Exception as e:  # pragma: no cover
+            self._set_error(str(e))
 
     def open_project(self, project: Any) -> Any | None:
         """Return a detailed project domain object and emit project_opened.

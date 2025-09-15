@@ -55,6 +55,16 @@ class MainWindow(QMainWindow):
         self.projects_tab = ProjectsTab()
         self.projects_detail_view = self.projects_tab.projects_detail_view
         self.tab_widget.addTab(self.projects_tab, "Projects")
+        # Wire ProjectsTab to a ProjectsViewModel for list and import flows
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_projects_view_model
+            self._projects_vm = build_projects_view_model()
+            try:
+                self.projects_tab.set_view_model(self._projects_vm)
+            except Exception:
+                pass
+        except Exception:
+            self._projects_vm = None  # pragma: no cover
         # Wire detail view actions to a ProjectDetailsViewModel (MVVM); keep legacy handlers disconnected
         try:
             from mmx_engineering_spec_manager.core.composition_root import build_project_details_view_model
