@@ -25,10 +25,17 @@ class MainWindowController(QObject):
         self.main_window.window_ready_signal.connect(self.initialize)
 
     def initialize(self):
+        # Build a ProjectsViewModel and pass it to the controller (MVVM migration)
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_projects_view_model
+            projects_vm = build_projects_view_model(self.data_manager)
+        except Exception:
+            projects_vm = None
         self._projects_controller = ProjectsController(
             data_manager=self.data_manager,
             projects_tab=self.main_window.projects_tab,
-            projects_detail_view=self.main_window.projects_detail_view
+            projects_detail_view=self.main_window.projects_detail_view,
+            view_model=projects_vm,
         )
 
         self._workspace_controller = WorkspaceController(

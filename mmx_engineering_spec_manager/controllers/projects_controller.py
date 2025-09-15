@@ -12,19 +12,30 @@ from mmx_engineering_spec_manager.importers.innergy import InnergyImporter
 class ProjectsController(QObject):
     """
     Controller to manage the projects tab and project detail view.
+
+    During MVVM migration, delegates data-loading logic to ProjectsViewModel
+    when available, keeping UI-specific concerns (dialogs/threads) here.
     """
     project_opened_signal = Signal(object)
 
-    def __init__(self, data_manager, projects_tab, projects_detail_view):
+    def __init__(self, data_manager, projects_tab, projects_detail_view, view_model=None):
         super().__init__()
         self.data_manager = data_manager
         self.projects_tab = projects_tab
         self.projects_detail_view = projects_detail_view
+        self.view_model = view_model
         self._import_thread = None
         self._import_worker = None
         self._progress_dialog = None
         self._imported_count = 0
         self._import_had_error = False
+
+        # If a ViewModel is provided, subscribe to its events to update the View
+        try:
+            if self.view_model is not None and hasattr(self.view_model, "project_opened"):
+                self.view_model.project_opened.subscribe(self._on_vm_project_opened)
+        except Exception:
+            pass
 
         self._connect_signals()
         self.load_projects()
@@ -38,9 +49,22 @@ class ProjectsController(QObject):
 
     @Slot()
     def load_projects(self):
-        """Loads all projects from the data manager and displays them in the projects tab."""
-        projects = self.data_manager.get_all_projects()
-        self.projects_tab.display_projects(projects)
+        """Loads all projects and displays them in the projects tab.
+
+        Delegates to ProjectsViewModel when available.
+        """
+        try:
+            if self.view_model is not None and hasattr(self.view_model, "load_projects"):
+                projects = self.view_model.load_projects()
+            else:
+                projects = self.data_manager.get_all_projects()
+            self.projects_tab.display_projects(projects)
+        except Exception:
+            # Be resilient in UI contexts
+            try:
+                self.projects_tab.display_projects([])
+            except Exception:
+                pass
 
     @Slot()
     def import_from_innergy(self):
@@ -190,8 +214,31 @@ class ProjectsController(QObject):
 
     @Slot(object)
     def open_project(self, project):
-        """Opens a project and displays its details in the project detail view."""
-        detailed_project = self.data_manager.get_project_by_id(project.id)
+        """Opens a project and displays its details in the project detail view.
+
+        Delegates to ProjectsViewModel when available; otherwise uses DataManager.
+        """
+        try:
+            if self.view_model is not None and hasattr(self.view_model, "open_project"):
+                # Let the VM fetch and emit; our subscribed handler will update the view
+                self.view_model.open_project(project)
+                return
+            # Fallback legacy path
+            detailed_project = self.data_manager.get_project_by_id(project.id)
+            self._render_project(detailed_project)
+        except Exception:
+            # Best-effort resilience in UI context
+            pass
+
+    # --- VM event handlers ---
+    def _on_vm_project_opened(self, detailed_project):
+        try:
+            self._render_project(detailed_project)
+        except Exception:
+            pass
+
+    # --- Helpers ---
+    def _render_project(self, detailed_project):
         # Keep existing detail view rendering (covered by tests)
         self.projects_detail_view.display_project(detailed_project)
         # Ask the tab to swap to the detail view if supported

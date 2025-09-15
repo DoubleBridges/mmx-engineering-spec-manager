@@ -2,8 +2,6 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from mmx_engineering_spec_manager.controllers.main_window_controller import MainWindowController
-from mmx_engineering_spec_manager.data_manager.manager import DataManager
 from mmx_engineering_spec_manager.views.main_window import MainWindow
 
 
@@ -15,16 +13,8 @@ def main():
     app.setOrganizationName("MMX")
     app.setApplicationName("Engineering Spec Manager")
 
-    # Initialize the database and data manager
-    data_manager = DataManager()
-
-    # Initialize the main window and controller
+    # Initialize the main window (VMs are wired via composition_root inside the view)
     main_window = MainWindow()
-    main_controller = MainWindowController(
-        main_window=main_window,
-        data_manager=data_manager,
-        view_model=getattr(main_window, "_vm", None),
-    )
 
     main_window.show()
     sys.exit(app.exec())

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
-from mmx_engineering_spec_manager.viewmodels import MainWindowViewModel, WorkspaceViewModel, AttributesViewModel
+from mmx_engineering_spec_manager.viewmodels import MainWindowViewModel, WorkspaceViewModel, AttributesViewModel, ProjectsViewModel
 from mmx_engineering_spec_manager.services import ProjectBootstrapService, AttributesService
 
 
@@ -41,3 +41,17 @@ def build_attributes_view_model(data_manager: Any | None = None) -> AttributesVi
     """
     service = AttributesService(data_manager) if data_manager is not None else None
     return AttributesViewModel(data_manager=data_manager, attributes_service=service)
+
+
+def build_projects_view_model(data_manager: Any | None = None) -> ProjectsViewModel:
+    """Factory to construct ProjectsViewModel.
+
+    For now it wraps DataManager directly; later can be expanded with services.
+    """
+    if data_manager is None:
+        try:  # lazily construct a DataManager if one wasn't provided
+            from mmx_engineering_spec_manager.data_manager.manager import DataManager  # type: ignore
+            data_manager = DataManager()
+        except Exception:  # pragma: no cover
+            data_manager = None
+    return ProjectsViewModel(data_manager=data_manager)
