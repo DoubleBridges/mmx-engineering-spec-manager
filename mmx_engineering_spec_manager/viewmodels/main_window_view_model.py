@@ -143,20 +143,36 @@ class MainWindowViewModel:
 
             # Otherwise, fall back to ingestion path (only if number is present)
             if num:
-                success = None
+                # Gather settings for API decision (service encapsulates final decision)
                 try:
                     settings = get_settings()
                 except Exception:
                     settings = None
                 has_api_key = bool(getattr(settings, "innergy_api_key", None))
 
-                # Perform ingestion (blocking in current thread; no UI responsibilities here)
+                # Perform ingestion via bootstrap service when available; otherwise fallback to DataManager
+                ingestion_failed = False
                 try:
-                    if has_api_key:
-                        success = self._data_manager.ingest_project_details_to_project_db(str(num))
-                except Exception as e:
+                    if getattr(self, "_bootstrap_service", None) is not None:
+                        res_ing = self._bootstrap_service.ingest_project_details_if_needed(project, settings)
+                        if not getattr(res_ing, "ok", False):
+                            ingestion_failed = True
+                            self.set_error(f"Failed to load project details from Innergy for project {num}. Details: {getattr(res_ing, 'error', 'unknown error')}")
+                        elif getattr(res_ing, "value", False):
+                            # Ingestion happened successfully; optional informational notification
+                            self.notify("Project details loaded from Innergy.")
+                    elif has_api_key and getattr(self, "_data_manager", None) is not None:  # transitional fallback
+                        try:
+                            success = bool(self._data_manager.ingest_project_details_to_project_db(str(num)))
+                            if not success:
+                                ingestion_failed = True
+                                self.set_error(f"Failed to load project details from Innergy for project {num}.")
+                        except Exception as e:
+                            ingestion_failed = True
+                            self.set_error(str(e))
+                except Exception as e:  # pragma: no cover
+                    ingestion_failed = True
                     self.set_error(str(e))
-                    success = False
 
                 # Try to load enriched project from per-project DB regardless via the bootstrap service
                 try:
@@ -176,8 +192,9 @@ class MainWindowViewModel:
                     pass
 
                 # Surface failure as notification (UI can decide how to present)
-                if has_api_key and success is False:
-                    self.set_error(f"Failed to load project details from Innergy for project {num}.")
+                if ingestion_failed:
+                    # error already emitted via set_error; nothing further required
+                    pass
         except Exception as e:
             # Catch-all to keep VM safe
             self.set_error(str(e))
