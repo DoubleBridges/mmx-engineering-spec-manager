@@ -63,6 +63,16 @@ class MainWindow(QMainWindow):
                 self.projects_tab.set_view_model(self._projects_vm)
             except Exception:
                 pass
+            # Load projects list from local DB on startup (MVVM)
+            try:
+                QTimer.singleShot(0, self._projects_vm.load_projects)
+            except Exception:
+                pass
+            # Refresh action (F5) reloads projects from DB via VM
+            try:
+                self.refresh_requested.connect(self._projects_vm.load_projects)
+            except Exception:
+                pass
         except Exception:
             self._projects_vm = None  # pragma: no cover
         # Wire detail view actions to a ProjectDetailsViewModel (MVVM); keep legacy handlers disconnected
