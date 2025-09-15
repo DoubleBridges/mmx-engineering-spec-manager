@@ -304,13 +304,62 @@ class AttributesTab(QWidget):
         self._build_model(rows)
 
     def _on_save_callouts(self):
-        # Lazy create DataManager only when saving
-        if self._dm is None:
-            self._dm = DataManager()
         # Collect rows from all tables
         all_rows: List[Dict[str, str]] = []
         for tab_name, view in self._callout_tables.items():
             all_rows.extend(self._rows_from_model(view))
+
+        # Preferred: delegate saving to the ViewModel if attached (transitional wiring)
+        try:
+            if self._vm is not None:
+                # Use DataManager only to list/select target project for parity with legacy UX
+                if self._dm is None:
+                    try:
+                        self._dm = DataManager()
+                    except Exception:
+                        self._dm = None
+                projects = self._dm.get_all_projects() if self._dm is not None else []
+                if not projects:
+                    return
+                items = [f"{p.number or ''} - {p.name or ''} (ID {p.id})" for p in projects]
+                # Preselect the active project if available
+                default_idx = 0
+                try:
+                    active_id = getattr(getattr(self, "_active_project", None), "id", None)
+                    if active_id is not None:
+                        for i, p in enumerate(projects):
+                            if getattr(p, "id", None) == active_id:
+                                default_idx = i
+                                break
+                except Exception:  # pragma: no cover
+                    pass  # pragma: no cover
+                choice, ok = QInputDialog.getItem(self, "Select Project", "Project:", items, default_idx, False)
+                if not ok:
+                    return
+                sel_idx = items.index(choice)
+                project = projects[sel_idx]
+                # Ensure VM knows which project to save into
+                try:
+                    self._vm.set_active_project(project)
+                except Exception:
+                    pass
+                # Save callouts through VM
+                self._vm.save_callouts_for_active_project(all_rows)
+                # Persist Location Tables for the same project using DataManager (to be moved to VM in Phase 2 step 4)
+                try:
+                    lt_data = self._gather_location_tables_data()
+                    if self._dm is not None:
+                        self._dm.replace_location_tables_for_project(project.id, lt_data)
+                except Exception:
+                    pass
+                return
+        except Exception:
+            # Fall back to legacy path below if VM errors
+            pass
+
+        # Legacy fallback path using DataManager directly
+        if self._dm is None:
+            self._dm = DataManager()
         # Map to DTOs
         dtos = []
         for r in all_rows:
