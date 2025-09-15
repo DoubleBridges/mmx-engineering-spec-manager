@@ -69,3 +69,42 @@ def build_projects_view_model(data_manager: Any | None = None) -> ProjectsViewMo
         except Exception:  # pragma: no cover
             data_manager = None
     return ProjectsViewModel(data_manager=data_manager)
+
+
+# --- existing imports and builders above ---
+
+
+def build_project_details_view_model(data_manager: Any | None = None):
+    """Factory to construct ProjectDetailsViewModel with injected services.
+
+    Lazily constructs a DataManager if not provided; wires ProjectBootstrapService,
+    ProjectsService, and ProductsService.
+    """
+    if data_manager is None:
+        try:  # lazily construct a DataManager if one wasn't provided
+            from mmx_engineering_spec_manager.data_manager.manager import DataManager  # type: ignore
+            data_manager = DataManager()
+        except Exception:  # pragma: no cover
+            data_manager = None
+    try:
+        from mmx_engineering_spec_manager.viewmodels import ProjectDetailsViewModel  # type: ignore
+    except Exception:  # pragma: no cover
+        ProjectDetailsViewModel = None  # type: ignore
+    try:
+        from mmx_engineering_spec_manager.services import ProjectsService  # type: ignore
+        from mmx_engineering_spec_manager.services import ProductsService  # type: ignore
+        from mmx_engineering_spec_manager.services import ProjectBootstrapService  # type: ignore
+    except Exception:  # pragma: no cover
+        ProjectsService = None  # type: ignore
+        ProductsService = None  # type: ignore
+    if data_manager is None or ProjectDetailsViewModel is None:
+        return None
+    projects_service = ProjectsService(data_manager) if ProjectsService is not None else None
+    products_service = ProductsService(data_manager) if ProductsService is not None else None
+    bootstrap = ProjectBootstrapService(data_manager) if data_manager is not None else None
+    return ProjectDetailsViewModel(
+        project_bootstrap_service=bootstrap,
+        projects_service=projects_service,
+        products_service=products_service,
+        data_manager=data_manager,
+    )

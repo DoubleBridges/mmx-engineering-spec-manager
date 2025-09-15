@@ -55,10 +55,30 @@ class MainWindow(QMainWindow):
         self.projects_tab = ProjectsTab()
         self.projects_detail_view = self.projects_tab.projects_detail_view
         self.tab_widget.addTab(self.projects_tab, "Projects")
-        # Wire detail view actions
+        # Wire detail view actions to a ProjectDetailsViewModel (MVVM); keep legacy handlers disconnected
         try:
-            self.projects_detail_view.load_products_clicked_signal.connect(self._on_load_products_from_innergy)
-            self.projects_detail_view.save_products_changes_clicked_signal.connect(self._on_save_products_changes)
+            from mmx_engineering_spec_manager.core.composition_root import build_project_details_view_model
+            self._project_details_vm = build_project_details_view_model()
+        except Exception:
+            self._project_details_vm = None  # pragma: no cover
+        try:
+            if self._project_details_vm is not None:
+                # Button wiring: delegate to VM commands
+                self.projects_detail_view.load_products_clicked_signal.connect(self._project_details_vm.load_products_from_innergy_if_needed)
+                self.projects_detail_view.save_products_changes_clicked_signal.connect(self._project_details_vm.save_products_changes)
+                # When VM loads/enriches the project, render in the detail view
+                self._project_details_vm.project_loaded.subscribe(lambda p: self.projects_tab.display_project_details(p))
+                # When VM stages products, update the detail tree and enable Save
+                def _on_products_loaded(products):
+                    try:
+                        self.projects_detail_view.update_products_from_dicts(products or [])
+                    except Exception:
+                        pass
+                    try:
+                        self.projects_detail_view.set_save_products_changes_enabled(bool(products))
+                    except Exception:
+                        pass
+                self._project_details_vm.products_loaded.subscribe(_on_products_loaded)
         except Exception:
             pass
         self._pending_products = None
@@ -77,6 +97,13 @@ class MainWindow(QMainWindow):
             # Route project open via VM; VM then notifies back to lightweight handler
             self.projects_tab.open_project_signal.connect(self._vm.set_active_project)
             self._vm.project_opened.subscribe(self._on_project_opened_from_vm)
+            # Reflect project selection into ProjectDetails VM and load details
+            try:
+                if getattr(self, "_project_details_vm", None) is not None:
+                    self._vm.project_opened.subscribe(self._project_details_vm.set_active_project)
+                    self._vm.project_opened.subscribe(lambda p: self._project_details_vm.load_details())
+            except Exception:
+                pass
         except Exception:
             self._vm = None  # pragma: no cover
             # Fallback: connect project open directly to existing handler

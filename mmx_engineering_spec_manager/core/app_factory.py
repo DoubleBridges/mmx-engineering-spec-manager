@@ -22,6 +22,12 @@ def build_main_window():
     # Instantiate DataManager and legacy controller to wire Projects and Import actions
     try:
         dm = DataManager()
+        # Make DataManager available to MainWindow for legacy product load/save handlers
+        # (transitional: _on_load_products_from_innergy and _on_save_products_changes)
+        try:
+            setattr(main_window, "_data_manager", dm)
+        except Exception:
+            pass
         # Pass the ViewModel if present to bridge events
         vm = getattr(main_window, "_vm", None)
         MainWindowController(main_window=main_window, data_manager=dm, view_model=vm)
