@@ -51,16 +51,56 @@ class WorkspaceTab(QWidget):
         """
         try:
             self._vm = view_model
+            # Subscribe to VM events so the View renders from VM state when available
+            try:
+                if hasattr(self._vm, "tree_loaded"):
+                    self._vm.tree_loaded.subscribe(self._on_tree_loaded)
+            except Exception:
+                pass
+            try:
+                # Notifications can be used later for toast/messages; ignored for now
+                if hasattr(self._vm, "notification"):
+                    self._vm.notification.subscribe(lambda _p: None)
+            except Exception:
+                pass
+            # If a project is already displayed, let the VM know and trigger a load
+            try:
+                if self.current_project is not None and hasattr(self._vm, "set_active_project"):
+                    self._vm.set_active_project(self.current_project)
+                    if hasattr(self._vm, "load"):
+                        self._vm.load()
+            except Exception:
+                pass
         except Exception:
             # Be resilient in tests/headless environments
             self._vm = None
+
+    def _on_tree_loaded(self, tree: dict):  # pragma: no cover - thin glue
+        try:
+            self._render_tree(tree or {})
+        except Exception:
+            pass
+
+    def _render_tree(self, tree: dict) -> None:
+        """Render Workspace UI from a VM-provided tree dict.
+
+        Currently updates the Project label from tree['label'] when present. More bindings can be added later.
+        """
+        try:
+            label = None
+            if isinstance(tree, dict):
+                label = tree.get("label")
+            if label:
+                self.project_label.setText(f"Project Loaded: {label}")
+        except Exception:
+            pass
 
     def display_project_data(self, project):
         """
         Receives project data and populates the workspace tabs.
         """
         self.current_project = project
-        # Update label
+        # Update label (legacy path; VM-based rendering will override when available)
         self.project_label.setText(f"Project Loaded: {project.name} ({project.number})")
         # Initialize default scenes (safe defaults; actual data wiring will be added later)
         try:
@@ -77,3 +117,12 @@ class WorkspaceTab(QWidget):
             # In tests/mocks without full attributes, fall back to defaults
             self.plan_view.set_wall()
             self.elevation_view.set_wall()
+        # If a VM is attached, reflect the project selection into the VM and ask it to load its state
+        try:
+            if self._vm is not None:
+                if hasattr(self._vm, "set_active_project"):
+                    self._vm.set_active_project(project)
+                if hasattr(self._vm, "load"):
+                    self._vm.load()
+        except Exception:
+            pass
