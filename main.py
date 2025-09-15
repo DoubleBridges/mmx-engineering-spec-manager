@@ -2,7 +2,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from mmx_engineering_spec_manager.views.main_window import MainWindow
+from mmx_engineering_spec_manager.core.app_factory import build_main_window
 
 
 def main():
@@ -13,8 +13,8 @@ def main():
     app.setOrganizationName("MMX")
     app.setApplicationName("Engineering Spec Manager")
 
-    # Initialize the main window (VMs are wired via composition_root inside the view)
-    main_window = MainWindow()
+    # Initialize the main window via the app factory (keeps composition_root UI-free)
+    main_window = build_main_window()
 
     main_window.show()
     sys.exit(app.exec())
