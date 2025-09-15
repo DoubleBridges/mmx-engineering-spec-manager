@@ -154,59 +154,42 @@ class AttributesTab(QWidget):
             pass
 
     def load_callouts_for_active_project(self):
-        """Load callouts for the active project from VM if present; otherwise fallback to DataManager.
+        """Load callouts for the active project via the ViewModel and render tables.
 
         Populates the per-category tables, rebuilds tag index, and refreshes Locations UI.
         """
-        # If a ViewModel is attached, prefer it (keeps business logic out of the View)
+        # Use ViewModel exclusively for loading callouts (MVVM-compliant)
         try:
-            if self._vm is not None:
-                grouped = self._vm.load_callouts_for_active_project()
-                if isinstance(grouped, dict) and grouped:
-                    for tab_name, rows in grouped.items():
-                        self._populate_callout_table(str(tab_name), list(rows or []))
-                    # Rebuild tag index and load locations/location-tables after callouts are shown
-                    self._rebuild_tag_index()
-                    self.load_locations_and_location_tables_for_active_project()
+            vm = self._vm
+            if vm is None:
+                # Transitional: build a temporary VM via composition root using a DataManager instance
+                try:
+                    if self._dm is None:
+                        try:
+                            self._dm = DataManager()
+                        except Exception:
+                            return
+                    from mmx_engineering_spec_manager.core.composition_root import build_attributes_view_model
+                    vm = build_attributes_view_model(self._dm)
+                    # Ensure VM knows the active project
+                    if getattr(self, "_active_project", None) is not None:
+                        try:
+                            vm.set_active_project(self._active_project)
+                        except Exception:
+                            pass
+                except Exception:
                     return
-        except Exception:
-            # Fall back to legacy path below if VM errors
-            pass
-
-        # Legacy fallback path using DataManager
-        if self._dm is None:
-            try:
-                self._dm = DataManager()
-            except Exception:  # pragma: no cover
-                return  # pragma: no cover
-        if not getattr(self, "_active_project", None):
-            return
-        try:
-            pid = getattr(self._active_project, "id", None)
-            if pid is None:
-                return
-            grouped = self._dm.get_callouts_for_project(pid)
+            grouped = vm.load_callouts_for_active_project()
             if not isinstance(grouped, dict):
                 return
-            # Populate each known tab
-            for tab_name, items in grouped.items():
-                rows = []
-                for d in items or []:
-                    # Accept dicts from DataManager
-                    if isinstance(d, dict):
-                        rows.append({
-                            "Type": d.get("Type", ""),
-                            "Name": d.get("Name", ""),
-                            "Tag": d.get("Tag", ""),
-                            "Description": d.get("Description", ""),
-                        })
-                self._populate_callout_table(tab_name, rows)
+            for tab_name, rows in grouped.items():
+                self._populate_callout_table(str(tab_name), list(rows or []))
             # Rebuild tag index and load locations/location-tables after callouts are shown
             self._rebuild_tag_index()
             self.load_locations_and_location_tables_for_active_project()
-        except Exception:  # pragma: no cover
+        except Exception:
             # Silently ignore in UI context
-            pass  # pragma: no cover
+            pass
 
     def _populate_callout_table(self, tab_name: str, rows: List[Dict[str, Any]]):
         view = self._callout_tables.get(tab_name)

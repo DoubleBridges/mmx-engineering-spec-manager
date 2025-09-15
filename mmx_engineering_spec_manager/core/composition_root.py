@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any
 
 from mmx_engineering_spec_manager.viewmodels import MainWindowViewModel, WorkspaceViewModel, AttributesViewModel
-from mmx_engineering_spec_manager.services import ProjectBootstrapService
+from mmx_engineering_spec_manager.services import ProjectBootstrapService, AttributesService
 
 
 def build_main_window_view_model(data_manager: Any) -> MainWindowViewModel:
@@ -26,6 +26,7 @@ def build_workspace_view_model() -> WorkspaceViewModel:
 def build_attributes_view_model(data_manager: Any | None = None) -> AttributesViewModel:
     """Factory to construct AttributesViewModel.
 
-    Inject DataManager to enable DB-backed operations.
+    Provide AttributesService built from DataManager for MVVM-compliant loading/saving.
     """
-    return AttributesViewModel(data_manager=data_manager)
+    service = AttributesService(data_manager) if data_manager is not None else None
+    return AttributesViewModel(data_manager=data_manager, attributes_service=service)

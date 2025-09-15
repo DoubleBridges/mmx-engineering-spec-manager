@@ -13,6 +13,12 @@ try:  # pragma: no cover - import resilience
 except Exception:  # pragma: no cover
     DataManager = Any  # type: ignore
 
+# Services (optional, injected)
+try:  # pragma: no cover - import resilience for tests
+    from mmx_engineering_spec_manager.services import AttributesService
+except Exception:  # pragma: no cover
+    AttributesService = Any  # type: ignore
+
 
 class Event:
     def __init__(self) -> None:
@@ -44,9 +50,11 @@ class AttributesViewModel:
     No UI framework types, returns plain dict/list payloads.
     """
 
-    def __init__(self, data_manager: DataManager | None = None) -> None:
+    def __init__(self, data_manager: DataManager | None = None, attributes_service: AttributesService | None = None) -> None:
         self.view_state = AttributesViewState()
         self._dm = data_manager
+        # Prefer domain service; fall back to constructing one from DataManager if provided.
+        self._attributes_service = attributes_service or (AttributesService(data_manager) if data_manager is not None else None)
         # Events for the View to subscribe to (optional in transitional phase)
         self.callouts_loaded = Event()
         self.notification = Event()
@@ -57,23 +65,28 @@ class AttributesViewModel:
     # ---- Commands ----
     def load_callouts_for_active_project(self) -> Dict[str, List[Dict[str, str]]]:
         pid = self.view_state.active_project_id
-        if not pid or not self._dm:
+        if not pid:
             return {}
         try:
-            grouped = self._dm.get_callouts_for_project(pid) or {}
-            # Normalize to list[dict[str,str]]
-            norm: Dict[str, List[Dict[str, str]]] = {}
-            for tab, items in (grouped.items() if isinstance(grouped, dict) else []):
-                rows: List[Dict[str, str]] = []
-                for d in items or []:
-                    if isinstance(d, dict):
-                        rows.append({
-                            "Type": str(d.get("Type", "")),
-                            "Name": str(d.get("Name", "")),
-                            "Tag": str(d.get("Tag", "")),
-                            "Description": str(d.get("Description", "")),
-                        })
-                norm[str(tab)] = rows
+            if self._attributes_service is not None:
+                norm = self._attributes_service.load_callouts(int(pid)) or {}
+            elif self._dm is not None:
+                # Transitional fallback if service not available
+                grouped = self._dm.get_callouts_for_project(pid) or {}
+                norm: Dict[str, List[Dict[str, str]]] = {}
+                for tab, items in (grouped.items() if isinstance(grouped, dict) else []):
+                    rows: List[Dict[str, str]] = []
+                    for d in items or []:
+                        if isinstance(d, dict):
+                            rows.append({
+                                "Type": str(d.get("Type", "")),
+                                "Name": str(d.get("Name", "")),
+                                "Tag": str(d.get("Tag", "")),
+                                "Description": str(d.get("Description", "")),
+                            })
+                    norm[str(tab)] = rows
+            else:
+                norm = {}
             self.view_state.grouped_callouts = norm
             self.callouts_loaded.emit(norm)
             return norm
