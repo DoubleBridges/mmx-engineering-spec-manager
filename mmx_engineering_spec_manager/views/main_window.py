@@ -23,6 +23,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Engineering Project Manager")
         self.resize(1200, 800)
         self.current_project = None
+        self._vm = None  # MainWindowViewModel (optional)
 
         # Create the menu bar
         self.menu_bar = self.menuBar()
@@ -44,6 +45,7 @@ class MainWindow(QMainWindow):
         self.refresh_action = QAction("&Refresh", self)
         self.refresh_action.setShortcut("F5")
         self.view_menu.addAction(self.refresh_action)
+        # Keep existing Qt signal for backward compatibility
         self.refresh_action.triggered.connect(self.refresh_requested.emit)
 
         # Create the QTabWidget and set it as the central widget
@@ -68,12 +70,55 @@ class MainWindow(QMainWindow):
         except Exception:  # pragma: no cover
             self._data_manager = None  # pragma: no cover
 
+        # Try to build and attach a ViewModel (transitional wiring)
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_main_window_view_model
+            self._vm = build_main_window_view_model(self._data_manager)
+            # Relay VM refresh requests to existing Qt signal so controllers keep working
+            self._vm.refresh_requested.subscribe(lambda: self.refresh_requested.emit())
+            # Forward UI Refresh action to VM
+            self.refresh_action.triggered.connect(self._vm.request_refresh)
+            # Route project open via VM; VM then notifies back to lightweight handler
+            self.projects_tab.open_project_signal.connect(self._vm.set_active_project)
+            self._vm.project_opened.subscribe(self._on_project_opened_from_vm)
+        except Exception:
+            self._vm = None  # pragma: no cover
+            # Fallback: connect project open directly to existing handler
+            self.projects_tab.open_project_signal.connect(self._on_project_loaded)
+
         # Insert new Attributes tab between Projects and Workspace
         self.attributes_tab = AttributesTab()
         self.tab_widget.addTab(self.attributes_tab, "Attributes")
+        # Transitional: build an AttributesViewModel and attach non-invasively
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_attributes_view_model
+            self._attributes_vm = build_attributes_view_model(getattr(self, "_data_manager", None))
+            try:
+                self.attributes_tab.set_view_model(self._attributes_vm)
+            except Exception:
+                pass
+            if self._vm is not None:
+                # Bridge MainWindow VM project selection to Attributes VM
+                self._vm.project_opened.subscribe(self._attributes_vm.set_active_project)
+        except Exception:
+            self._attributes_vm = None  # pragma: no cover
 
         self.workspace_tab = WorkspaceTab()
         self.tab_widget.addTab(self.workspace_tab, "Workspace")
+        # Transitional: build a WorkspaceViewModel and attach non-invasively
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_workspace_view_model
+            self._workspace_vm = build_workspace_view_model()
+            try:
+                self.workspace_tab.set_view_model(self._workspace_vm)
+            except Exception:
+                pass
+            # Bridge MainWindow VM project selection to Workspace VM and View
+            if self._vm is not None:
+                self._vm.project_opened.subscribe(self._workspace_vm.set_active_project)
+                self._vm.project_opened.subscribe(self.workspace_tab.display_project_data)
+        except Exception:
+            self._workspace_vm = None  # pragma: no cover
 
         self.export_tab = ExportTab()
         self.tab_widget.addTab(self.export_tab, "Export")
@@ -87,8 +132,6 @@ class MainWindow(QMainWindow):
         # Disable non-project tabs until a current project is set
         self._set_non_project_tabs_enabled(False)
 
-        # Connect project load events
-        self.projects_tab.open_project_signal.connect(self._on_project_loaded)
         # React when user switches tabs (for lazy loading of Attributes content)
         try:
             self.tab_widget.currentChanged.connect(self._on_tab_changed)
@@ -114,6 +157,32 @@ class MainWindow(QMainWindow):
             self.current_project_changed.emit(project)
         except Exception:
             pass
+
+    def _on_project_opened_from_vm(self, project):
+        """Lightweight handler for VM-originated project activation.
+
+        Only updates the UI; no DataManager orchestration or I/O here.
+        """
+        # Set current project and display details
+        self.set_current_project(project)
+        try:
+            self.projects_tab.display_project_details(project)
+        except Exception:
+            pass
+        # Inform Attributes tab about the active project
+        try:
+            self.attributes_tab.set_active_project(project)
+            if self.tab_widget.currentIndex() == self._idx_attributes:
+                self.attributes_tab.load_callouts_for_active_project()
+        except Exception:
+            pass
+        # Update Workspace view presentation (safe, view-only)
+        try:
+            self.workspace_tab.display_project_data(project)
+        except Exception:
+            pass
+        # Enable other tabs now that a project is active
+        self._set_non_project_tabs_enabled(True)
 
     def _on_project_loaded(self, project):
         # Set current project, show details, and enable other tabs

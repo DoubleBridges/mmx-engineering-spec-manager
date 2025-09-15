@@ -11,6 +11,7 @@ class WorkspaceTab(QWidget):
     """
     def __init__(self):
         super().__init__()
+        self._vm = None  # Optional WorkspaceViewModel (transitional wiring)
         self.layout = QVBoxLayout(self)
 
         self.tab_widget = QTabWidget()
@@ -42,6 +43,17 @@ class WorkspaceTab(QWidget):
         self.wall_tab.setLayout(QVBoxLayout())
         self.elevation_view = ElevationViewWidget()
         self.wall_tab.layout().addWidget(self.elevation_view)
+
+    def set_view_model(self, view_model):
+        """Attach a WorkspaceViewModel (optional, transitional).
+
+        View remains operable without a VM; this enables MVVM binding without breaking legacy code.
+        """
+        try:
+            self._vm = view_model
+        except Exception:
+            # Be resilient in tests/headless environments
+            self._vm = None
 
     def display_project_data(self, project):
         """

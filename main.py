@@ -22,7 +22,8 @@ def main():
     main_window = MainWindow()
     main_controller = MainWindowController(
         main_window=main_window,
-        data_manager=data_manager
+        data_manager=data_manager,
+        view_model=getattr(main_window, "_vm", None),
     )
 
     main_window.show()
