@@ -7,7 +7,6 @@ from .export.export_tab import ExportTab
 from .projects.projects_tab import ProjectsTab
 from .workspace.workspace_tab import WorkspaceTab
 from .attributes.attributes_tab import AttributesTab
-from mmx_engineering_spec_manager.data_manager.manager import DataManager
 from mmx_engineering_spec_manager.utilities.settings import get_settings
 from mmx_engineering_spec_manager.utilities.persistence import project_sqlite_db_path
 
@@ -23,6 +22,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Engineering Project Manager")
         self.resize(1200, 800)
         self.current_project = None
+        self._vm = None  # MainWindowViewModel (optional)
 
         # Create the menu bar
         self.menu_bar = self.menuBar()
@@ -44,6 +44,7 @@ class MainWindow(QMainWindow):
         self.refresh_action = QAction("&Refresh", self)
         self.refresh_action.setShortcut("F5")
         self.view_menu.addAction(self.refresh_action)
+        # Keep existing Qt signal for backward compatibility
         self.refresh_action.triggered.connect(self.refresh_requested.emit)
 
         # Create the QTabWidget and set it as the central widget
@@ -54,29 +55,130 @@ class MainWindow(QMainWindow):
         self.projects_tab = ProjectsTab()
         self.projects_detail_view = self.projects_tab.projects_detail_view
         self.tab_widget.addTab(self.projects_tab, "Projects")
-        # Wire detail view actions
+        # Wire ProjectsTab to a ProjectsViewModel for list and import flows
         try:
-            self.projects_detail_view.load_products_clicked_signal.connect(self._on_load_products_from_innergy)
-            self.projects_detail_view.save_products_changes_clicked_signal.connect(self._on_save_products_changes)
+            from mmx_engineering_spec_manager.core.composition_root import build_projects_view_model
+            self._projects_vm = build_projects_view_model()
+            try:
+                self.projects_tab.set_view_model(self._projects_vm)
+            except Exception:
+                pass
+            # Load projects list from local DB on startup (MVVM)
+            try:
+                QTimer.singleShot(0, self._projects_vm.load_projects)
+            except Exception:
+                pass
+            # Refresh action (F5) reloads projects from DB via VM
+            try:
+                self.refresh_requested.connect(self._projects_vm.load_projects)
+            except Exception:
+                pass
+        except Exception:
+            self._projects_vm = None  # pragma: no cover
+        # Wire detail view actions to a ProjectDetailsViewModel (MVVM); keep legacy handlers disconnected
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_project_details_view_model
+            self._project_details_vm = build_project_details_view_model()
+        except Exception:
+            self._project_details_vm = None  # pragma: no cover
+        try:
+            if self._project_details_vm is not None:
+                # Button wiring: delegate to VM commands
+                self.projects_detail_view.load_products_clicked_signal.connect(self._project_details_vm.load_products_from_innergy_if_needed)
+                self.projects_detail_view.save_products_changes_clicked_signal.connect(self._project_details_vm.save_products_changes)
+                # When VM loads/enriches the project, render in the detail view
+                self._project_details_vm.project_loaded.subscribe(lambda p: self.projects_tab.display_project_details(p))
+                # When VM stages products, update the detail tree and enable Save
+                def _on_products_loaded(products):
+                    try:
+                        self.projects_detail_view.update_products_from_dicts(products or [])
+                    except Exception:
+                        pass
+                    try:
+                        self.projects_detail_view.set_save_products_changes_enabled(bool(products))
+                    except Exception:
+                        pass
+                self._project_details_vm.products_loaded.subscribe(_on_products_loaded)
         except Exception:
             pass
         self._pending_products = None
         
-        # Data manager for preparing per-project databases
+        # No DataManager in View (MVVM). Keep attribute for legacy no-op handlers.
+        self._data_manager = None
+
+        # Try to build and attach a ViewModel (transitional wiring)
         try:
-            self._data_manager = DataManager()
-        except Exception:  # pragma: no cover
-            self._data_manager = None  # pragma: no cover
+            from mmx_engineering_spec_manager.core.composition_root import build_main_window_view_model
+            self._vm = build_main_window_view_model()
+            # Relay VM refresh requests to existing Qt signal so controllers keep working
+            self._vm.refresh_requested.subscribe(lambda: self.refresh_requested.emit())
+            # Forward UI Refresh action to VM
+            self.refresh_action.triggered.connect(self._vm.request_refresh)
+            # Route project open via VM; VM then notifies back to lightweight handler
+            self.projects_tab.open_project_signal.connect(self._vm.set_active_project)
+            self._vm.project_opened.subscribe(self._on_project_opened_from_vm)
+            # Reflect project selection into ProjectDetails VM and load details
+            try:
+                if getattr(self, "_project_details_vm", None) is not None:
+                    self._vm.project_opened.subscribe(self._project_details_vm.set_active_project)
+                    self._vm.project_opened.subscribe(lambda p: self._project_details_vm.load_details())
+            except Exception:
+                pass
+        except Exception:
+            self._vm = None  # pragma: no cover
+            # Fallback: connect project open directly to existing handler
+            self.projects_tab.open_project_signal.connect(self._on_project_loaded)
 
         # Insert new Attributes tab between Projects and Workspace
         self.attributes_tab = AttributesTab()
         self.tab_widget.addTab(self.attributes_tab, "Attributes")
+        # Transitional: build an AttributesViewModel and attach non-invasively
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_attributes_view_model
+            self._attributes_vm = build_attributes_view_model()
+            try:
+                self.attributes_tab.set_view_model(self._attributes_vm)
+            except Exception:
+                pass
+            if self._vm is not None:
+                # Bridge MainWindow VM project selection to Attributes VM
+                self._vm.project_opened.subscribe(self._attributes_vm.set_active_project)
+        except Exception:
+            self._attributes_vm = None  # pragma: no cover
 
         self.workspace_tab = WorkspaceTab()
         self.tab_widget.addTab(self.workspace_tab, "Workspace")
+        # Transitional: build a WorkspaceViewModel and attach non-invasively
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_workspace_view_model
+            self._workspace_vm = build_workspace_view_model()
+            try:
+                self.workspace_tab.set_view_model(self._workspace_vm)
+            except Exception:
+                pass
+            # Bridge MainWindow VM project selection to Workspace VM and View
+            if self._vm is not None:
+                self._vm.project_opened.subscribe(self._workspace_vm.set_active_project)
+                self._vm.project_opened.subscribe(self.workspace_tab.display_project_data)
+        except Exception:
+            self._workspace_vm = None  # pragma: no cover
 
         self.export_tab = ExportTab()
         self.tab_widget.addTab(self.export_tab, "Export")
+        # Build and attach ExportViewModel (placeholder)
+        try:
+            from mmx_engineering_spec_manager.core.composition_root import build_export_view_model
+            self._export_vm = build_export_view_model()
+            try:
+                if hasattr(self.export_tab, "set_view_model"):
+                    self.export_tab.set_view_model(self._export_vm)
+            except Exception:
+                pass
+            # Bridge active project to Export VM as well
+            if self._vm is not None:
+                self._vm.project_opened.subscribe(self._export_vm.set_active_project)
+        except Exception:
+            self._export_vm = None  # pragma: no cover
 
         # Cache tab indexes
         self._idx_projects = self.tab_widget.indexOf(self.projects_tab)
@@ -87,8 +189,6 @@ class MainWindow(QMainWindow):
         # Disable non-project tabs until a current project is set
         self._set_non_project_tabs_enabled(False)
 
-        # Connect project load events
-        self.projects_tab.open_project_signal.connect(self._on_project_loaded)
         # React when user switches tabs (for lazy loading of Attributes content)
         try:
             self.tab_widget.currentChanged.connect(self._on_tab_changed)
@@ -114,6 +214,32 @@ class MainWindow(QMainWindow):
             self.current_project_changed.emit(project)
         except Exception:
             pass
+
+    def _on_project_opened_from_vm(self, project):
+        """Lightweight handler for VM-originated project activation.
+
+        Only updates the UI; no DataManager orchestration or I/O here.
+        """
+        # Set current project and display details
+        self.set_current_project(project)
+        try:
+            self.projects_tab.display_project_details(project)
+        except Exception:
+            pass
+        # Inform Attributes tab about the active project
+        try:
+            self.attributes_tab.set_active_project(project)
+            if self.tab_widget.currentIndex() == self._idx_attributes:
+                self.attributes_tab.load_callouts_for_active_project()
+        except Exception:
+            pass
+        # Update Workspace view presentation (safe, view-only)
+        try:
+            self.workspace_tab.display_project_data(project)
+        except Exception:
+            pass
+        # Enable other tabs now that a project is active
+        self._set_non_project_tabs_enabled(True)
 
     def _on_project_loaded(self, project):
         # Set current project, show details, and enable other tabs

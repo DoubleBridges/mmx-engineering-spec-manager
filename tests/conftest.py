@@ -1,33 +1,29 @@
-import pytest
-from sqlalchemy.orm import Session
-from mmx_engineering_spec_manager.db_models.project import Project
-from mmx_engineering_spec_manager.db_models.location import Location
-from mmx_engineering_spec_manager.db_models.product import Product
-from mmx_engineering_spec_manager.db_models.custom_field import CustomField
-from mmx_engineering_spec_manager.db_models.prompt import Prompt
-from mmx_engineering_spec_manager.db_models.specification_group import SpecificationGroup
-from mmx_engineering_spec_manager.db_models.global_prompts import GlobalPrompts
-from mmx_engineering_spec_manager.db_models.wizard_prompts import WizardPrompts
-from mmx_engineering_spec_manager.db_models.database_config import get_engine, Base
 import os
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
+# Ensure PySide6 uses a headless platform in CI environments to avoid aborts
+os.environ.setdefault("QT_QPA_PLATFORM", "minimal")
 
+# Provide a lightweight SQLAlchemy session fixture for tests that accept `db_session`
 @pytest.fixture
 def db_session():
-    """
-    Creates a new database session for each test.
-    """
-    # Create a temporary database file
-    db_path = "test.db"
-    engine = get_engine(db_path)
-
-    # Create the tables in the database
+    from mmx_engineering_spec_manager.db_models.database_config import Base
+    # Use an in-memory SQLite DB for isolation and speed
+    engine = create_engine("sqlite:///:memory:")
+    # Create all tables
     Base.metadata.create_all(engine)
-
-    session = Session(bind=engine)
-    yield session
-
-    # The session is closed and the engine is disposed of before the file is removed
-    session.close()
-    engine.dispose()
-    os.remove(db_path)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        yield session
+    finally:
+        try:
+            session.close()
+        except Exception:
+            pass
+        try:
+            engine.dispose()
+        except Exception:
+            pass
