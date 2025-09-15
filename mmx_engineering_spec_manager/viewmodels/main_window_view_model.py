@@ -118,14 +118,25 @@ class MainWindowViewModel:
             num = getattr(project, "number", None)
             pid = getattr(project, "id", None)
 
-            # If a DB file existed already, prefer loading from it and SKIP any API calls
+            # If a DB file existed already, prefer loading from it via the bootstrap service and SKIP any API calls
             if existed_already and pid is not None:
                 try:
-                    loaded = self._data_manager.get_full_project_from_project_db(pid)
-                    if loaded is not None:
-                        enriched = loaded
-                        self.project_opened.emit(enriched)
-                        return
+                    if getattr(self, "_bootstrap_service", None) is not None:
+                        res = self._bootstrap_service.load_enriched_project(project)
+                        if getattr(res, "ok", False):
+                            loaded = getattr(res, "value", None)
+                            if loaded is not None:
+                                enriched = loaded
+                                self.project_opened.emit(enriched)
+                                return
+                        else:
+                            self.notify(f"Failed to load project from DB: {getattr(res, 'error', 'unknown error')}", level="warning")
+                    elif getattr(self, "_data_manager", None) is not None:  # fallback during transition
+                        loaded = self._data_manager.get_full_project_from_project_db(pid)
+                        if loaded is not None:
+                            enriched = loaded
+                            self.project_opened.emit(enriched)
+                            return
                 except Exception as e:
                     # If load fails, fall back to the ingestion path below
                     self.notify(f"Failed to load project from DB: {e}", level="warning")
@@ -147,11 +158,20 @@ class MainWindowViewModel:
                     self.set_error(str(e))
                     success = False
 
-                # Try to load enriched project from per-project DB regardless
+                # Try to load enriched project from per-project DB regardless via the bootstrap service
                 try:
-                    loaded = self._data_manager.get_full_project_from_project_db(pid)
-                    if loaded is not None:
-                        enriched = loaded
+                    if getattr(self, "_bootstrap_service", None) is not None:
+                        res = self._bootstrap_service.load_enriched_project(project)
+                        if getattr(res, "ok", False):
+                            loaded = getattr(res, "value", None)
+                            if loaded is not None:
+                                enriched = loaded
+                        else:
+                            self.notify(f"Failed to load project from DB: {getattr(res, 'error', 'unknown error')}", level="warning")
+                    elif getattr(self, "_data_manager", None) is not None:  # fallback during transition
+                        loaded = self._data_manager.get_full_project_from_project_db(pid)
+                        if loaded is not None:
+                            enriched = loaded
                 except Exception:
                     pass
 

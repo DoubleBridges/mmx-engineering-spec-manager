@@ -5,8 +5,9 @@ from mmx_engineering_spec_manager.services import Result
 
 
 class DummyProject:
-    def __init__(self, pid):
+    def __init__(self, pid, number=None):
         self.id = pid
+        self.number = number
 
 
 def test_set_active_project_updates_state_and_emits_event():
