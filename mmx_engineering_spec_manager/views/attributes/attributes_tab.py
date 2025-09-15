@@ -20,7 +20,6 @@ from PySide6.QtWidgets import (
 
 from mmx_engineering_spec_manager.utilities import kv_import
 from mmx_engineering_spec_manager.utilities import callout_import
-from mmx_engineering_spec_manager.data_manager.manager import DataManager
 
 
 class AttributesTab(QWidget):
@@ -35,7 +34,6 @@ class AttributesTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._rows: List[Dict[str, Any]] = []
-        self._dm = None  # Lazy init to avoid heavy DB setup during tests until needed
         self._callout_tables: Dict[str, QTableView] = {}
         self._active_project = None  # Currently active project object (set by MainWindow)
         self._vm = None  # Optional AttributesViewModel (transitional wiring)
@@ -162,23 +160,7 @@ class AttributesTab(QWidget):
         try:
             vm = self._vm
             if vm is None:
-                # Transitional: build a temporary VM via composition root using a DataManager instance
-                try:
-                    if self._dm is None:
-                        try:
-                            self._dm = DataManager()
-                        except Exception:
-                            return
-                    from mmx_engineering_spec_manager.core.composition_root import build_attributes_view_model
-                    vm = build_attributes_view_model(self._dm)
-                    # Ensure VM knows the active project
-                    if getattr(self, "_active_project", None) is not None:
-                        try:
-                            vm.set_active_project(self._active_project)
-                        except Exception:
-                            pass
-                except Exception:
-                    return
+                return
             grouped = vm.load_callouts_for_active_project()
             if not isinstance(grouped, dict):
                 return
@@ -292,98 +274,24 @@ class AttributesTab(QWidget):
         for tab_name, view in self._callout_tables.items():
             all_rows.extend(self._rows_from_model(view))
 
-        # Preferred: delegate saving to the ViewModel if attached (transitional wiring)
+        # Delegate saving to the ViewModel; no direct DataManager usage in View
         try:
-            if self._vm is not None:
-                # Use DataManager only to list/select target project for parity with legacy UX
-                if self._dm is None:
-                    try:
-                        self._dm = DataManager()
-                    except Exception:
-                        self._dm = None
-                projects = self._dm.get_all_projects() if self._dm is not None else []
-                if not projects:
-                    return
-                items = [f"{p.number or ''} - {p.name or ''} (ID {p.id})" for p in projects]
-                # Preselect the active project if available
-                default_idx = 0
-                try:
-                    active_id = getattr(getattr(self, "_active_project", None), "id", None)
-                    if active_id is not None:
-                        for i, p in enumerate(projects):
-                            if getattr(p, "id", None) == active_id:
-                                default_idx = i
-                                break
-                except Exception:  # pragma: no cover
-                    pass  # pragma: no cover
-                choice, ok = QInputDialog.getItem(self, "Select Project", "Project:", items, default_idx, False)
-                if not ok:
-                    return
-                sel_idx = items.index(choice)
-                project = projects[sel_idx]
-                # Ensure VM knows which project to save into
-                try:
-                    self._vm.set_active_project(project)
-                except Exception:
-                    pass
-                # Save callouts through VM
-                self._vm.save_callouts_for_active_project(all_rows)
-                # Persist Location Tables for the same project using DataManager (to be moved to VM in Phase 2 step 4)
-                try:
-                    lt_data = self._gather_location_tables_data()
-                    if self._dm is not None:
-                        self._dm.replace_location_tables_for_project(project.id, lt_data)
-                except Exception:
-                    pass
+            if self._vm is None:
                 return
-        except Exception:
-            # Fall back to legacy path below if VM errors
-            pass
-
-        # Legacy fallback path using DataManager directly
-        if self._dm is None:
-            self._dm = DataManager()
-        # Map to DTOs
-        dtos = []
-        for r in all_rows:
-            t = (r.get("Type") or "").strip() or callout_import.TYPE_UNCATEGORIZED
-            name = (r.get("Name") or "").strip()
-            tag = (r.get("Tag") or "").strip()
-            desc = (r.get("Description") or "").strip()
-            if not name or not tag or not desc:
-                continue
-            dtos.append(callout_import._mk_dto(name, tag, desc))
-            # Preserve explicit user-assigned Type in Uncategorized by overriding categorization
-            if t and t != dtos[-1].type:
-                dtos[-1].type = t  # type: ignore[misc]
-        # Choose project to save into
-        projects = self._dm.get_all_projects()
-        if not projects:
-            return
-        items = [f"{p.number or ''} - {p.name or ''} (ID {p.id})" for p in projects]
-        # Preselect the active project if available
-        default_idx = 0
-        try:
-            active_id = getattr(getattr(self, "_active_project", None), "id", None)
-            if active_id is not None:
-                for i, p in enumerate(projects):
-                    if getattr(p, "id", None) == active_id:
-                        default_idx = i
-                        break
-        except Exception:  # pragma: no cover
-            pass  # pragma: no cover
-        choice, ok = QInputDialog.getItem(self, "Select Project", "Project:", items, default_idx, False)
-        if not ok:
-            return
-        sel_idx = items.index(choice)
-        project = projects[sel_idx]
-        # Group and persist
-        grouped = callout_import.group_callouts(dtos)
-        self._dm.replace_callouts_for_project(project.id, grouped)
-        # Also persist Location Tables for this project
-        try:
-            lt_data = self._gather_location_tables_data()
-            self._dm.replace_location_tables_for_project(project.id, lt_data)
+            # Ensure VM targets the current active project
+            try:
+                if getattr(self, "_active_project", None) is not None:
+                    self._vm.set_active_project(self._active_project)
+            except Exception:
+                pass
+            # Save callouts first
+            self._vm.save_callouts_for_active_project(all_rows)
+            # Then persist Location Tables for the same project via VM
+            try:
+                lt_data = self._gather_location_tables_data()
+                self._vm.save_location_tables_for_active_project(lt_data)
+            except Exception:
+                pass
         except Exception:
             # Non-fatal in UI context
             pass
@@ -562,38 +470,21 @@ class AttributesTab(QWidget):
         return out
 
     def load_locations_and_location_tables_for_active_project(self):
-        """Load Locations list and any existing location tables from the active project's DB."""
-        if self._dm is None:
-            try:
-                self._dm = DataManager()
-            except Exception:
-                return
-        pid = getattr(getattr(self, "_active_project", None), "id", None)
-        if pid is None:
+        """Load Locations list and any existing location tables for the active project via the ViewModel."""
+        vm = self._vm
+        if vm is None:
             return
-        # Build locations list from per-project DB
-        names: List[str] = []
+        # Load mapping via VM/Service
         try:
-            pr = self._dm.get_full_project_from_project_db(pid)
-            if pr is not None:
-                for loc in getattr(pr, "locations", []) or []:
-                    try:
-                        nm = getattr(loc, "name", None)
-                        if nm:
-                            names.append(str(nm))
-                    except Exception:
-                        continue
-        except Exception:
-            names = []
-        self._locations_model.removeRows(0, self._locations_model.rowCount())
-        for nm in sorted(set(names), key=lambda s: s.lower()):
-            self._locations_model.appendRow(QStandardItem(nm))
-        # Load existing location tables
-        mapping = {}
-        try:
-            mapping = self._dm.get_location_tables_for_project(pid) or {}
+            mapping = vm.load_locations_and_tables_for_active_project() or {}
         except Exception:
             mapping = {}
+        # Populate locations list from mapping keys
+        self._locations_model.removeRows(0, self._locations_model.rowCount())
+        names = [str(k) for k in mapping.keys()]
+        for nm in sorted(set(names), key=lambda s: s.lower()):
+            self._locations_model.appendRow(QStandardItem(nm))
+        # Apply tables mapping
         self._location_tables_by_name = {str(k): (v or []) for k, v in mapping.items()}
         # Select first location if available
         try:

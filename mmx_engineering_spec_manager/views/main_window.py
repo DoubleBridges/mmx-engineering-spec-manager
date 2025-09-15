@@ -7,7 +7,6 @@ from .export.export_tab import ExportTab
 from .projects.projects_tab import ProjectsTab
 from .workspace.workspace_tab import WorkspaceTab
 from .attributes.attributes_tab import AttributesTab
-from mmx_engineering_spec_manager.data_manager.manager import DataManager
 from mmx_engineering_spec_manager.utilities.settings import get_settings
 from mmx_engineering_spec_manager.utilities.persistence import project_sqlite_db_path
 
@@ -64,16 +63,13 @@ class MainWindow(QMainWindow):
             pass
         self._pending_products = None
         
-        # Data manager for preparing per-project databases
-        try:
-            self._data_manager = DataManager()
-        except Exception:  # pragma: no cover
-            self._data_manager = None  # pragma: no cover
+        # No DataManager in View (MVVM). Keep attribute for legacy no-op handlers.
+        self._data_manager = None
 
         # Try to build and attach a ViewModel (transitional wiring)
         try:
             from mmx_engineering_spec_manager.core.composition_root import build_main_window_view_model
-            self._vm = build_main_window_view_model(self._data_manager)
+            self._vm = build_main_window_view_model()
             # Relay VM refresh requests to existing Qt signal so controllers keep working
             self._vm.refresh_requested.subscribe(lambda: self.refresh_requested.emit())
             # Forward UI Refresh action to VM
@@ -92,7 +88,7 @@ class MainWindow(QMainWindow):
         # Transitional: build an AttributesViewModel and attach non-invasively
         try:
             from mmx_engineering_spec_manager.core.composition_root import build_attributes_view_model
-            self._attributes_vm = build_attributes_view_model(getattr(self, "_data_manager", None))
+            self._attributes_vm = build_attributes_view_model()
             try:
                 self.attributes_tab.set_view_model(self._attributes_vm)
             except Exception:

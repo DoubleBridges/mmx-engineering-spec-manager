@@ -5,12 +5,19 @@ from mmx_engineering_spec_manager.viewmodels import MainWindowViewModel, Workspa
 from mmx_engineering_spec_manager.services import ProjectBootstrapService, AttributesService
 
 
-def build_main_window_view_model(data_manager: Any) -> MainWindowViewModel:
+def build_main_window_view_model(data_manager: Any | None = None) -> MainWindowViewModel:
     """Factory to construct MainWindowViewModel with injected dependencies.
 
     Now inject ProjectBootstrapService to handle project DB ensure/ingest/load orchestration.
+    Lazily constructs a DataManager if one is not provided to keep Views UI-only.
     """
-    bootstrap = ProjectBootstrapService(data_manager)
+    if data_manager is None:
+        try:  # lazily construct a DataManager if one wasn't provided
+            from mmx_engineering_spec_manager.data_manager.manager import DataManager  # type: ignore
+            data_manager = DataManager()
+        except Exception:  # pragma: no cover
+            data_manager = None
+    bootstrap = ProjectBootstrapService(data_manager) if data_manager is not None else None
     vm = MainWindowViewModel(data_manager=data_manager, project_bootstrap_service=bootstrap)
     return vm
 
@@ -38,7 +45,14 @@ def build_attributes_view_model(data_manager: Any | None = None) -> AttributesVi
     """Factory to construct AttributesViewModel.
 
     Provide AttributesService built from DataManager for MVVM-compliant loading/saving.
+    Lazily constructs a DataManager if one wasn't provided.
     """
+    if data_manager is None:
+        try:  # lazily construct a DataManager if one wasn't provided
+            from mmx_engineering_spec_manager.data_manager.manager import DataManager  # type: ignore
+            data_manager = DataManager()
+        except Exception:  # pragma: no cover
+            data_manager = None
     service = AttributesService(data_manager) if data_manager is not None else None
     return AttributesViewModel(data_manager=data_manager, attributes_service=service)
 

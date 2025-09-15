@@ -167,6 +167,59 @@ class AttributesViewModel:
             self._set_error(str(e))
             return False
 
+    # ---- Location tables commands ----
+    def load_locations_and_tables_for_active_project(self) -> Dict[str, List[Dict[str, str]]]:
+        pid = self.view_state.active_project_id
+        if not pid:
+            return {}
+        try:
+            if getattr(self, "_attributes_service", None) is not None:
+                return self._attributes_service.load_locations_and_tables(int(pid)) or {}
+            # Transitional fallback: DataManager if available
+            if getattr(self, "_dm", None) is not None:
+                mapping = self._dm.get_location_tables_for_project(int(pid)) or {}
+                out: Dict[str, List[Dict[str, str]]] = {}
+                for name, rows in (mapping or {}).items():
+                    norm_rows: List[Dict[str, str]] = []
+                    for r in rows or []:
+                        if isinstance(r, dict):
+                            norm_rows.append({
+                                "Type": str(r.get("Type", "") or ""),
+                                "Tag": str(r.get("Tag", "") or ""),
+                                "Description": str(r.get("Description", "") or ""),
+                            })
+                    out[str(name or "")] = norm_rows
+                return out
+            return {}
+        except Exception as e:  # pragma: no cover
+            self._set_error(str(e))
+            return {}
+
+    def save_location_tables_for_active_project(self, mapping: Dict[str, List[Dict[str, str]]] | None) -> bool:
+        pid = self.view_state.active_project_id
+        if not pid:
+            return False
+        try:
+            if getattr(self, "_attributes_service", None) is not None:
+                res = self._attributes_service.save_location_tables(int(pid), mapping or {})
+                if getattr(res, "ok", False):
+                    self.notification.emit({"level": "info", "message": "Location tables saved"})
+                    return True
+                self._set_error(getattr(res, "error", "Failed to save location tables"))
+                return False
+            # Transitional fallback using DataManager
+            if getattr(self, "_dm", None) is not None:
+                ok = self._dm.replace_location_tables_for_project(int(pid), mapping or {})
+                if ok:
+                    self.notification.emit({"level": "info", "message": "Location tables saved"})
+                    return True
+                self._set_error("Failed to save location tables")
+                return False
+            return False
+        except Exception as e:  # pragma: no cover
+            self._set_error(str(e))
+            return False
+
     # ---- Helpers ----
     def _set_error(self, message: str) -> None:
         self.view_state.error = message
