@@ -121,14 +121,31 @@ class AttributesViewModel:
         return grouped
 
     def save_callouts_for_active_project(self, rows: List[Dict[str, str]]) -> bool:
+        """Persist callouts for the active project.
+
+        Prefers AttributesService; falls back to DataManager for transitional compatibility.
+        Emits notifications on success/error.
+        """
         pid = self.view_state.active_project_id
-        if not pid or not self._dm:
+        if not pid:
             return False
-        # Map rows to DTOs via callout_import utilities, skipping incomplete rows
         try:
+            # Preferred path: use domain service which accepts flat rows or grouped mapping
+            if getattr(self, "_attributes_service", None) is not None:
+                res = self._attributes_service.save_callouts(int(pid), rows)
+                if getattr(res, "ok", False):
+                    self.notification.emit({"level": "info", "message": "Callouts saved"})
+                    return True
+                # Failure: surface error
+                self._set_error(getattr(res, "error", "Failed to save callouts"))
+                return False
+
+            # Transitional fallback: use DataManager directly (legacy path)
+            if not getattr(self, "_dm", None):
+                return False
             dtos = []
             TYPE_UNC = getattr(callout_import, "TYPE_UNCATEGORIZED", "Uncategorized") if callout_import else "Uncategorized"
-            for r in rows:
+            for r in rows or []:
                 t = (r.get("Type") or "").strip() or TYPE_UNC
                 name = (r.get("Name") or "").strip()
                 tag = (r.get("Tag") or "").strip()
@@ -136,7 +153,6 @@ class AttributesViewModel:
                 if not name or not tag or not desc:
                     continue
                 dto = callout_import._mk_dto(name, tag, desc) if callout_import else {"type": t, "name": name, "tag": tag, "description": desc}
-                # Preserve explicit user-assigned Type in Uncategorized by overriding categorization
                 try:
                     if callout_import and t and getattr(dto, "type", None) != t:
                         dto.type = t  # type: ignore[attr-defined]
@@ -145,6 +161,7 @@ class AttributesViewModel:
                 dtos.append(dto)
             grouped = callout_import.group_callouts(dtos) if callout_import else {}
             self._dm.replace_callouts_for_project(pid, grouped)
+            self.notification.emit({"level": "info", "message": "Callouts saved"})
             return True
         except Exception as e:  # pragma: no cover
             self._set_error(str(e))
