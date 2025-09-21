@@ -70,7 +70,6 @@ class AttributesTab(QWidget):
         layout.addLayout(top_bar)
         layout.addWidget(self.callouts_tabs)
         layout.addLayout(self._location_bar)
-        layout.addWidget(self.table)
         self.setLayout(layout)
 
     def set_view_model(self, view_model):
